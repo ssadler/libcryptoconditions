@@ -1,0 +1,3 @@
+[submodule "crypto-conditions"]
+	path = crypto-conditions
+	url = ./ext/crypto-conditions
