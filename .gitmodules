@@ -1,3 +1,6 @@
-[submodule "crypto-conditions"]
-	path = crypto-conditions
-	url = ./ext/crypto-conditions
+[submodule "ext/komodo"]
+	path = ext/komodo
+	url = git@github.com:jl777/komodo.git
+[submodule "ext/crypto-conditions"]
+	path = ext/crypto-conditions
+	url = git@github.com:rfcs/crypto-conditions.git
