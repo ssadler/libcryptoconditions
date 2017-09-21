@@ -1,6 +1,5 @@
 import json
 import ctypes
-import base58
 import base64
 from ctypes import *
 
@@ -23,9 +22,8 @@ def jsonRPC(method, params):
 
 def test_ed25519():
     vectors = _read_vectors('0004_test-minimal-ed25519')
-    pk = decode_base64(vectors['json']['publicKey'].encode())
     uri = jsonRPC('makeEd25519Condition', {
-        'public_key': base58.b58encode(pk)
+        'public_key': vectors['json']['publicKey']
     })
     assert uri == vectors['conditionUri']
 

@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 
 static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -37,20 +39,44 @@ char *base64_encode(const unsigned char *data,
         encoded_data[j++] = encoding_table[(triple >> 0 * 6) & 0x3F];
     }
 
-    for (int i = 0; i < mod_table[input_length % 3]; i++)
-        encoded_data[*output_length - 1 - i] = '=';
+    int strip = mod_table[input_length % 3];
+    for (int i = 0; i < strip; i++)
+        encoded_data[*output_length - 1 - i] = '\0';
+
+
+    // url safe
+    for (int i=0; i<*output_length; i++) {
+        if (encoded_data[i] == '/') encoded_data[i] = '_';
+        if (encoded_data[i] == '+') encoded_data[i] = '-';
+    }
 
     return encoded_data;
 }
 
 
-unsigned char *base64_decode(const char *data,
+unsigned char *base64_decode(const char *data_,
                              size_t input_length,
                              size_t *output_length) {
 
     if (decoding_table == NULL) build_decoding_table();
 
-    if (input_length % 4 != 0) return NULL;
+    int rem = input_length % 4;
+    char *data = malloc(input_length + (4-rem));
+    strcpy(data, data_);
+
+    // for unpadded b64
+    if (0 != rem) {
+        for (int i=0; i<4-rem; i++) {
+            data[input_length + i] = '=';
+        }
+        input_length += 4-rem;
+    }
+
+    // for URL safe
+    for (int i=0; i<input_length; i++) {
+        if (data[i] == '-') data[i] = '+';
+        if (data[i] == '_') data[i] = '/';
+    }
 
     *output_length = input_length / 4 * 3;
     if (data[input_length - 1] == '=') (*output_length)--;
