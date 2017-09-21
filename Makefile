@@ -1,6 +1,6 @@
 
 build:
-	gcc -g -o cryptoconditions -Iinclude/ include/models/*.c cryptoconditions.c
+	gcc -fPIC -shared -g -o cryptoconditions.so -Iinclude/ -Iinclude/models include/models/*.c include/*.c cryptoconditions.c -lsodium
 
 asn1:
 	rm -rf include/models
@@ -13,4 +13,4 @@ build-test:
 	.env/bin/pip install -r test-requirements.txt
 
 test:
-	nosetests
+	pytest -s -x test.py
