@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 
 static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -14,6 +15,13 @@ static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                 '4', '5', '6', '7', '8', '9', '+', '/'};
 static char *decoding_table = NULL;
 static int mod_table[] = {0, 2, 1};
+
+
+void build_decoding_table() {
+    decoding_table = malloc(256);
+    for (int i = 0; i < 64; i++)
+        decoding_table[(unsigned char) encoding_table[i]] = i;
+}
 
 
 char *base64_encode(const unsigned char *data,
@@ -106,15 +114,20 @@ unsigned char *base64_decode(const char *data_,
 }
 
 
-void build_decoding_table() {
-
-    decoding_table = malloc(256);
-
-    for (int i = 0; i < 64; i++)
-        decoding_table[(unsigned char) encoding_table[i]] = i;
+void base64_cleanup() {
+    free(decoding_table);
 }
 
 
-void base64_cleanup() {
-    free(decoding_table);
+void dumpStr(char *str, size_t len) {
+    if (-1 == len) len = strlen(str);
+    fprintf(stderr, "len:%i ", (int)len);
+    for (int i=0; i<len; i++) {
+        if (isprint(str[i])) {
+            fprintf(stderr, "%c", str[i]);
+        } else {
+            fprintf(stderr, "\\x%02x", str[i] & 0xff);
+        }
+    }
+    fprintf(stderr, "\n");
 }

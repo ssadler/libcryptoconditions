@@ -1,48 +1,27 @@
 
-#include "include/models/Condition.h"
-#include "include/models/Ed25519FingerprintContents.h"
-#include "include/models/OCTET_STRING.h"
+#include "src/models/Condition.h"
+#include "src/models/Fulfillment.h"
+#include "src/models/Ed25519FingerprintContents.h"
+#include "src/models/OCTET_STRING.h"
 #include "include/cJSON.h"
 #include "src/condition.c"
+#include "src/utils.h"
 #include <sodium.h>
-
+#include <assert.h>
 
 
 #define streq(a, b) strcmp(a, b) == 0
 
-/*
- * This guy is for tweetnacl
- */
-void randombytes(unsigned char *bytes, unsigned long long num) {
-    bytes = malloc(num); // TODO
-}
-
-/*
-int makeEd25519Condition_t(Condition *cond, char *public_key) {
-    SimpleSha256Condition *ed25519 = malloc(sizeof(Ed25519Sha512Condition_t));
-    OCTET_STRING_t *pk = OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, public_key, -1);
-    if (pk == NULL) {
-        return 1;
-    }
-    ed25519->publicKey = *pk;
-    //fprintf(stderr, public_key);
-    ffill->choice.ed25519Sha256 = *ed25519;
-    ffill->present = Condition_PR_ed25519Sha256;
-    return 0;
-}
-*/
-
 
 char *getFingerprint(CC *cond) {
     Ed25519FingerprintContents_t fp;
-    fp.publicKey = *OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, cond->publicKey, 32);
+    fp.publicKey =* OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, cond->publicKey, 32);
     char *out = malloc(100);
     char *hash = malloc(32);
 
     der_encode_to_buffer(&asn_DEF_Ed25519FingerprintContents, &fp, out, 100);
-    fprintf(stderr, "%i\n", strlen(out));
-    for (int i=0; i<32; i++) fprintf(stderr, "0x%x,", cond->publicKey[i] & 0xff);
-    crypto_hash_sha256(hash, out, strlen(out));
+    crypto_hash_sha256(hash, out, 36); // TODO: Why is it neccesary to hardcode
+                                       // 36 here? strlen says 38???
     return hash;
 }
 
@@ -78,8 +57,62 @@ char *makeEd25119Condition(cJSON *params) {
 
     CC *cond = malloc(sizeof(CC));
     cond->publicKey = base64_decode(pk_b64, strlen(pk_b64), &binsz);
-
     return jsonCondition(cond); // TODO: free(cond);
+}
+
+
+void ffill_to_cc(Fulfillment_t *ffill, CC *cond) {
+    if (ffill->present == Fulfillment_PR_ed25519Sha256) {
+        cond->type = ed25519Type;
+        cond->publicKey = malloc(32);
+        strcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf);
+    }
+    else {
+        // TODO
+        fprintf(stderr, "Unknown fulfillment type\n");
+    }
+}
+
+
+int readFulfillment(CC *cond, char *ffill_bin) {
+    Fulfillment_t *ffill = 0;
+    asn_dec_rval_t rval;
+    rval = ber_decode(0, &asn_DEF_Fulfillment, (void **)&ffill, ffill_bin, -1);
+    if (rval.code == RC_OK) {
+        ffill_to_cc(ffill, cond);
+    }
+    asn_DEF_Fulfillment.free_struct(&asn_DEF_Fulfillment, ffill, 0);
+    if (rval.code == RC_OK) return 0;
+    return 1;
+}
+
+
+char *verifyFulfillment(cJSON *params) {
+    cJSON *uri_item = cJSON_GetObjectItem(params, "conditionUri");
+    if (!cJSON_IsString(uri_item)) {
+        return "conditionUri must be a string";
+    }
+
+    cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
+    if (!cJSON_IsString(ffill_b64_item)) {
+        return "fulfillment must be a string";
+    }
+
+    cJSON *msg_item = cJSON_GetObjectItem(params, "message");
+    if (!cJSON_IsString(msg_item)) {
+        return "message must be a string";
+    }
+
+    size_t ffill_bin_len;
+    char *ffill_bin = base64_decode(ffill_b64_item->valuestring,
+            strlen(ffill_b64_item->valuestring), &ffill_bin_len);
+
+
+    CC *cond = malloc(sizeof(CC));
+    int rc = readFulfillment(cond, ffill_bin);
+    if (rc != 0) return "Invalid fulfillment payload";
+
+    return jsonCondition(cond);
 }
 
 
@@ -89,7 +122,7 @@ char *jsonRPC(char* input) {
     cJSON *root = cJSON_Parse(input);
     cJSON *method_item = cJSON_GetObjectItem(root, "method");
     if (!cJSON_IsString(method_item)) {
-        return "";
+        return "malformed method";
     }
     char *method = method_item->valuestring;
     cJSON *params = cJSON_GetObjectItem(root, "params");
@@ -100,7 +133,10 @@ char *jsonRPC(char* input) {
     if (streq(method, "makeEd25519Condition")) {
         return makeEd25119Condition(params);
     }
-        
+
+    else if (streq(method, "verifyFulfillment")) {
+        return verifyFulfillment(params);
+    }
 
     return "a"; // todo: memory leak?
 }

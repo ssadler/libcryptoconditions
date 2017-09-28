@@ -1,12 +1,12 @@
 
 build:
-	gcc -fPIC -shared -g -o cryptoconditions.so -Iinclude/ -Iinclude/models include/models/*.c include/*.c cryptoconditions.c -lsodium
+	gcc -fPIC -shared -g -o cryptoconditions.so -Iinclude/ -Isrc/models src/models/*.c include/*.c src/utils.c cryptoconditions.c -lsodium
 
 asn1:
-	rm -rf include/models
-	mkdir -p include/models
-	cd include/models && asn1c ../../ext/crypto-conditions/src/asn1/CryptoConditions.asn
-	rm include/models/converter-sample.c
+	rm -rf src/models
+	mkdir -p src/models
+	cd src/models && asn1c ../../ext/crypto-conditions/src/asn1/CryptoConditions.asn
+	rm src/models/converter-sample.c
 
 build-test:
 	virtualenv .env
