@@ -6,8 +6,6 @@
 #include "include/cJSON.h"
 #include "src/condition.c"
 #include "src/utils.h"
-#include <sodium.h>
-#include <assert.h>
 
 
 #define streq(a, b) strcmp(a, b) == 0
@@ -22,6 +20,8 @@ char *getFingerprint(CC *cond) {
     der_encode_to_buffer(&asn_DEF_Ed25519FingerprintContents, &fp, out, 100);
     crypto_hash_sha256(hash, out, 36); // TODO: Why is it neccesary to hardcode
                                        // 36 here? strlen says 38???
+    //asn_DEF_OCTET_STRING.free_struct(&asn_DEF_OCTET_STRING, &(fp.publicKey), 0);
+    free(out);
     return hash;
 }
 
