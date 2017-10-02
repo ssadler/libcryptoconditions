@@ -1,11 +1,12 @@
 
-#include "models/Condition.h"
-#include "models/Fulfillment.h"
-#include "models/Ed25519FingerprintContents.h"
-#include "models/OCTET_STRING.h"
+#include "asn/Condition.h"
+#include "asn/Fulfillment.h"
+#include "asn/Ed25519FingerprintContents.h"
+#include "asn/OCTET_STRING.h"
 #include "include/cJSON.h"
 #include "condition.c"
 #include "utils.h"
+#include <sodium.h>
 
 
 #define streq(a, b) strcmp(a, b) == 0
@@ -65,7 +66,7 @@ void ffill_to_cc(Fulfillment_t *ffill, CC *cond) {
     if (ffill->present == Fulfillment_PR_ed25519Sha256) {
         cond->type = ed25519Type;
         cond->publicKey = malloc(32);
-        strcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf);
+        memcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf, 32);
     }
     else {
         // TODO
@@ -74,10 +75,10 @@ void ffill_to_cc(Fulfillment_t *ffill, CC *cond) {
 }
 
 
-int readFulfillment(CC *cond, char *ffill_bin) {
+int readFulfillment(CC *cond, char *ffill_bin, size_t ffill_bin_len) {
     Fulfillment_t *ffill = 0;
     asn_dec_rval_t rval;
-    rval = ber_decode(0, &asn_DEF_Fulfillment, (void **)&ffill, ffill_bin, -1);
+    rval = ber_decode(0, &asn_DEF_Fulfillment, (void **)&ffill, ffill_bin, ffill_bin_len);
     if (rval.code == RC_OK) {
         ffill_to_cc(ffill, cond);
     }
@@ -107,9 +108,8 @@ char *verifyFulfillment(cJSON *params) {
     char *ffill_bin = base64_decode(ffill_b64_item->valuestring,
             strlen(ffill_b64_item->valuestring), &ffill_bin_len);
 
-
     CC *cond = malloc(sizeof(CC));
-    int rc = readFulfillment(cond, ffill_bin);
+    int rc = readFulfillment(cond, ffill_bin, ffill_bin_len);
     if (rc != 0) return "Invalid fulfillment payload";
 
     return jsonCondition(cond);

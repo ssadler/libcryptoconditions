@@ -133,9 +133,32 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libcryptoconditions_la_LIBADD =
-libcryptoconditions_la_SOURCES = libcryptoconditions.c
-libcryptoconditions_la_OBJECTS = libcryptoconditions.lo
+libcryptoconditions_la_DEPENDENCIES =
+am__dirstamp = $(am__leading_dot)dirstamp
+am_libcryptoconditions_la_OBJECTS = src/cryptoconditions.lo \
+	src/utils.lo src/include/base58.lo src/include/cJSON.lo \
+	src/asn/Condition.lo src/asn/SimpleSha256Condition.lo \
+	src/asn/CompoundSha256Condition.lo src/asn/ConditionTypes.lo \
+	src/asn/Fulfillment.lo src/asn/PreimageFulfillment.lo \
+	src/asn/PrefixFulfillment.lo src/asn/ThresholdFulfillment.lo \
+	src/asn/RsaSha256Fulfillment.lo \
+	src/asn/Ed25519Sha512Fulfillment.lo \
+	src/asn/PrefixFingerprintContents.lo \
+	src/asn/ThresholdFingerprintContents.lo \
+	src/asn/RsaFingerprintContents.lo \
+	src/asn/Ed25519FingerprintContents.lo src/asn/INTEGER.lo \
+	src/asn/NativeEnumerated.lo src/asn/NativeInteger.lo \
+	src/asn/asn_SET_OF.lo src/asn/constr_CHOICE.lo \
+	src/asn/constr_SEQUENCE.lo src/asn/constr_SET_OF.lo \
+	src/asn/OCTET_STRING.lo src/asn/BIT_STRING.lo \
+	src/asn/asn_codecs_prim.lo src/asn/ber_tlv_length.lo \
+	src/asn/ber_tlv_tag.lo src/asn/ber_decoder.lo \
+	src/asn/der_encoder.lo src/asn/constr_TYPE.lo \
+	src/asn/constraints.lo src/asn/xer_support.lo \
+	src/asn/xer_decoder.lo src/asn/xer_encoder.lo \
+	src/asn/per_support.lo src/asn/per_decoder.lo \
+	src/asn/per_encoder.lo src/asn/per_opentype.lo
+libcryptoconditions_la_OBJECTS = $(am_libcryptoconditions_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -174,8 +197,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = libcryptoconditions.c
-DIST_SOURCES = libcryptoconditions.c
+SOURCES = $(libcryptoconditions_la_SOURCES)
+DIST_SOURCES = $(libcryptoconditions_la_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -341,8 +364,50 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libcryptoconditions.la
-libcc_la_SOURCES = src/cryptoconditions.c
-AM_CFLAGS = -I$(top_srcdir)/src/models
+libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
+	src/utils.c \
+	src/include/base58.c \
+	src/include/cJSON.c \
+	src/asn/Condition.c	\
+	src/asn/SimpleSha256Condition.c	\
+	src/asn/CompoundSha256Condition.c	\
+	src/asn/ConditionTypes.c	\
+	src/asn/Fulfillment.c	\
+	src/asn/PreimageFulfillment.c	\
+	src/asn/PrefixFulfillment.c	\
+	src/asn/ThresholdFulfillment.c	\
+	src/asn/RsaSha256Fulfillment.c	\
+	src/asn/Ed25519Sha512Fulfillment.c	\
+	src/asn/PrefixFingerprintContents.c	\
+	src/asn/ThresholdFingerprintContents.c	\
+	src/asn/RsaFingerprintContents.c	\
+	src/asn/Ed25519FingerprintContents.c \
+	src/asn/INTEGER.c \
+	src/asn/NativeEnumerated.c \
+	src/asn/NativeInteger.c \
+	src/asn/asn_SET_OF.c \
+	src/asn/constr_CHOICE.c \
+	src/asn/constr_SEQUENCE.c \
+	src/asn/constr_SET_OF.c \
+	src/asn/OCTET_STRING.c \
+	src/asn/BIT_STRING.c \
+	src/asn/asn_codecs_prim.c \
+	src/asn/ber_tlv_length.c \
+	src/asn/ber_tlv_tag.c \
+	src/asn/ber_decoder.c \
+	src/asn/der_encoder.c \
+	src/asn/constr_TYPE.c \
+	src/asn/constraints.c \
+	src/asn/xer_support.c \
+	src/asn/xer_decoder.c \
+	src/asn/xer_encoder.c \
+	src/asn/per_support.c \
+	src/asn/per_decoder.c \
+	src/asn/per_encoder.c \
+	src/asn/per_opentype.c
+
+libcryptoconditions_la_LIBADD = -lsodium
+AM_CFLAGS = -I$(top_srcdir)/src/asn
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -431,17 +496,162 @@ clean-libLTLIBRARIES:
 	  echo rm -f $${locs}; \
 	  rm -f $${locs}; \
 	}
+src/$(am__dirstamp):
+	@$(MKDIR_P) src
+	@: > src/$(am__dirstamp)
+src/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) src/$(DEPDIR)
+	@: > src/$(DEPDIR)/$(am__dirstamp)
+src/cryptoconditions.lo: src/$(am__dirstamp) \
+	src/$(DEPDIR)/$(am__dirstamp)
+src/utils.lo: src/$(am__dirstamp) src/$(DEPDIR)/$(am__dirstamp)
+src/include/$(am__dirstamp):
+	@$(MKDIR_P) src/include
+	@: > src/include/$(am__dirstamp)
+src/include/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) src/include/$(DEPDIR)
+	@: > src/include/$(DEPDIR)/$(am__dirstamp)
+src/include/base58.lo: src/include/$(am__dirstamp) \
+	src/include/$(DEPDIR)/$(am__dirstamp)
+src/include/cJSON.lo: src/include/$(am__dirstamp) \
+	src/include/$(DEPDIR)/$(am__dirstamp)
+src/asn/$(am__dirstamp):
+	@$(MKDIR_P) src/asn
+	@: > src/asn/$(am__dirstamp)
+src/asn/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) src/asn/$(DEPDIR)
+	@: > src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/Condition.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/SimpleSha256Condition.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/CompoundSha256Condition.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/ConditionTypes.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/Fulfillment.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/PreimageFulfillment.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/PrefixFulfillment.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/ThresholdFulfillment.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/RsaSha256Fulfillment.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/Ed25519Sha512Fulfillment.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/PrefixFingerprintContents.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/ThresholdFingerprintContents.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/RsaFingerprintContents.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/Ed25519FingerprintContents.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/INTEGER.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/NativeEnumerated.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/NativeInteger.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/asn_SET_OF.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/constr_CHOICE.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/constr_SEQUENCE.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/constr_SET_OF.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/OCTET_STRING.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/BIT_STRING.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/asn_codecs_prim.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/ber_tlv_length.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/ber_tlv_tag.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/ber_decoder.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/der_encoder.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/constr_TYPE.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/constraints.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/xer_support.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/xer_decoder.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/xer_encoder.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/per_support.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/per_decoder.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/per_encoder.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
+src/asn/per_opentype.lo: src/asn/$(am__dirstamp) \
+	src/asn/$(DEPDIR)/$(am__dirstamp)
 
 libcryptoconditions.la: $(libcryptoconditions_la_OBJECTS) $(libcryptoconditions_la_DEPENDENCIES) $(EXTRA_libcryptoconditions_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(LINK) -rpath $(libdir) $(libcryptoconditions_la_OBJECTS) $(libcryptoconditions_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
+	-rm -f src/*.$(OBJEXT)
+	-rm -f src/*.lo
+	-rm -f src/asn/*.$(OBJEXT)
+	-rm -f src/asn/*.lo
+	-rm -f src/include/*.$(OBJEXT)
+	-rm -f src/include/*.lo
 
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libcryptoconditions.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/cryptoconditions.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/utils.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/BIT_STRING.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/CompoundSha256Condition.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/Condition.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/ConditionTypes.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/Ed25519FingerprintContents.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/Ed25519Sha512Fulfillment.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/Fulfillment.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/INTEGER.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/NativeEnumerated.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/NativeInteger.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/OCTET_STRING.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/PrefixFingerprintContents.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/PrefixFulfillment.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/PreimageFulfillment.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/RsaFingerprintContents.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/RsaSha256Fulfillment.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/SimpleSha256Condition.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/ThresholdFingerprintContents.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/ThresholdFulfillment.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/asn_SET_OF.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/asn_codecs_prim.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/ber_decoder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/ber_tlv_length.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/ber_tlv_tag.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/constr_CHOICE.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/constr_SEQUENCE.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/constr_SET_OF.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/constr_TYPE.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/constraints.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/der_encoder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/per_decoder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/per_encoder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/per_opentype.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/per_support.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/xer_decoder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/xer_encoder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/asn/$(DEPDIR)/xer_support.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/include/$(DEPDIR)/base58.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/include/$(DEPDIR)/cJSON.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -472,6 +682,9 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+	-rm -rf src/.libs src/_libs
+	-rm -rf src/asn/.libs src/asn/_libs
+	-rm -rf src/include/.libs src/include/_libs
 
 distclean-libtool:
 	-rm -f libtool config.lt
@@ -731,6 +944,12 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
+	-rm -f src/$(DEPDIR)/$(am__dirstamp)
+	-rm -f src/$(am__dirstamp)
+	-rm -f src/asn/$(DEPDIR)/$(am__dirstamp)
+	-rm -f src/asn/$(am__dirstamp)
+	-rm -f src/include/$(DEPDIR)/$(am__dirstamp)
+	-rm -f src/include/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -742,7 +961,7 @@ clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
-	-rm -rf ./$(DEPDIR)
+	-rm -rf src/$(DEPDIR) src/asn/$(DEPDIR) src/include/$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-hdr distclean-libtool distclean-tags
@@ -790,7 +1009,7 @@ installcheck-am:
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
 	-rm -rf $(top_srcdir)/autom4te.cache
-	-rm -rf ./$(DEPDIR)
+	-rm -rf src/$(DEPDIR) src/asn/$(DEPDIR) src/include/$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
