@@ -1,3 +1,11 @@
 *.pyc
 cryptoconditions.so
 .cache
+configure
+config.status
+Makefile
+config.log
+*.cache
+.libs
+*.lo
+*.o

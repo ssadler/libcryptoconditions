@@ -1,11 +1,11 @@
 
-#include "src/models/Condition.h"
-#include "src/models/Fulfillment.h"
-#include "src/models/Ed25519FingerprintContents.h"
-#include "src/models/OCTET_STRING.h"
+#include "models/Condition.h"
+#include "models/Fulfillment.h"
+#include "models/Ed25519FingerprintContents.h"
+#include "models/OCTET_STRING.h"
 #include "include/cJSON.h"
-#include "src/condition.c"
-#include "src/utils.h"
+#include "condition.c"
+#include "utils.h"
 
 
 #define streq(a, b) strcmp(a, b) == 0

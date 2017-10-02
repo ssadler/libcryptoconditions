@@ -4,7 +4,7 @@ import base64
 from ctypes import *
 
 
-so = cdll.LoadLibrary('./cryptoconditions.so')
+so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
 so.jsonRPC.restype = c_char_p
 
 
