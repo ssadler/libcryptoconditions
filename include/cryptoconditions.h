@@ -6,26 +6,50 @@
 extern "C" {
 #endif
 
-/* Dependencies */
-typedef struct ConditionType {
+struct CC;
+
+
+typedef struct CCType {
     int typeId;
-} ConditionType;
-
-
-struct ConditionType ed25519Type = { 4 };
+    char name[100];
+    int (*verify)(struct CC *cond, char *msg);
+    char *(*fingerprint)(struct CC *cond);
+    int (*getCost)(struct CC *cond);
+} CCType;
 
 
 /* Condition */
 typedef struct CC {
-	ConditionType type;
+	CCType type;
 	union {
         struct { char *publicKey, *signature; };
+        struct { char *preimage; size_t preimageLen };
 	};
 } CC;
 
 
-int readFulfillment(CC *cond, char *ffill_bin, size_t ffill_bin_len);
+int readFulfillment(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
 
+
+/*
+ * preimage Condition Type
+ */
+int preimageVerify(struct CC *cond, char *msg);
+char *preimageFingerprint(struct CC *cond);
+int preimageCost(struct CC *cond);
+struct CCType preimageType = { 0, "preimage-sha-256", &preimageVerify, &preimageFingerprint, &preimageCost };
+
+
+/*
+ * ed25519 Condition Type
+ */
+int ed25519Verify(struct CC *cond, char *msg);
+char *ed25519Fingerprint(struct CC *cond);
+int ed25519Cost(struct CC *cond);
+struct CCType ed25519Type = { 4, "ed25519-sha-256", &ed25519Verify, &ed25519Fingerprint, &ed25519Cost };
+
+
+struct CCType *typeRegistry[] = { &preimageType, NULL, NULL, NULL, &ed25519Type };
 
 void freeCondition(CC *cond);
 
