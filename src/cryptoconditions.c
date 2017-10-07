@@ -43,12 +43,16 @@ char *conditionUri(CC *cond) {
 }
 
 
-char *jsonCondition(CC *cond) {
-    return conditionUri(cond);
+cJSON *jsonCondition(CC *cond) {
+    char *uri = conditionUri(cond);
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddItemToObject(root, "uri", cJSON_CreateString(uri));
+    free(uri);
+    return root;
 }
 
 
-char *makeEd25119Condition(cJSON *params) {
+cJSON *makeEd25119Condition(cJSON *params) {
     cJSON *pk_item = cJSON_GetObjectItem(params, "public_key");
     if (!cJSON_IsString(pk_item)) {
         return "public_key must be a string";
@@ -88,20 +92,22 @@ int readFulfillment(CC *cond, char *ffill_bin, size_t ffill_bin_len) {
 }
 
 
-char *verifyFulfillment(cJSON *params) {
+char *decodeFulfillment(cJSON *params) {
+    /*
     cJSON *uri_item = cJSON_GetObjectItem(params, "conditionUri");
     if (!cJSON_IsString(uri_item)) {
         return "conditionUri must be a string";
     }
 
-    cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
-    if (!cJSON_IsString(ffill_b64_item)) {
-        return "fulfillment must be a string";
-    }
-
     cJSON *msg_item = cJSON_GetObjectItem(params, "message");
     if (!cJSON_IsString(msg_item)) {
         return "message must be a string";
+    }
+    */
+
+    cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
+    if (!cJSON_IsString(ffill_b64_item)) {
+        return "fulfillment must be a string";
     }
 
     size_t ffill_bin_len;
@@ -130,13 +136,15 @@ char *jsonRPC(char* input) {
         return "params is not an object";
     }
 
+    cJSON *out;
+
     if (streq(method, "makeEd25519Condition")) {
-        return makeEd25119Condition(params);
+        out = makeEd25119Condition(params);
     }
 
-    else if (streq(method, "verifyFulfillment")) {
-        return verifyFulfillment(params);
+    else if (streq(method, "decodeFulfillment")) {
+        out = decodeFulfillment(params);
     }
 
-    return "a"; // todo: memory leak?
+    return cJSON_Print(out);
 }
