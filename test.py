@@ -22,12 +22,27 @@ def jsonRPC(method, params):
     return json.loads(out)
 
 
+def b16_to_b64(b16):
+    return base64.urlsafe_b64encode(base64.b16decode(b16)).rstrip('=')
+
+
+def test_preimage_condition_binary():
+    vectors = _read_vectors('0000_test-minimal-preimage')
+    response = jsonRPC('makeCondition', vectors['json'])
+    assert response == {
+        'uri': vectors['conditionUri'],
+        'bin': b16_to_b64(vectors['conditionBinary']),
+    }
+
+
 def test_ed25519_make_condition():
     vectors = _read_vectors('0004_test-minimal-ed25519')
-    response = jsonRPC('makeCondition', {
-        'public_key': vectors['json']['publicKey']
-    })
-    assert response == {'uri': vectors['conditionUri']}
+    response = jsonRPC('makeCondition', vectors['json'])
+    b64bin = b16_to_b64(vectors['conditionBinary'])
+    assert response == {
+        'uri': vectors['conditionUri'],
+        'bin': b64bin,
+    }
 
 
 def test_ed25519_decode_fulfillment():
@@ -35,7 +50,10 @@ def test_ed25519_decode_fulfillment():
     response = jsonRPC('decodeFulfillment', {
         'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
     })
-    assert response == {'uri': vectors['conditionUri']}
+    assert response == {
+        'uri': vectors['conditionUri'],
+        'bin': b16_to_b64(vectors['conditionBinary']),
+    }
 
 
 def test_ed25519_verify():
@@ -50,20 +68,13 @@ def test_ed25519_verify():
     assert jsonRPC('verifyFulfillment', req) == {'valid': False}
 
 
-def test_preimage():
-    vectors = _read_vectors('0000_test-minimal-preimage')
-    response = jsonRPC('makeCondition', {
-        'preimage': '',
-    })
-    assert response == {'uri': vectors['conditionUri']}
-
-
 def test_threshold():
     vectors = _read_vectors('0002_test-minimal-threshold')
-    response = jsonRPC('makeCondition', {
-        'preimage': '',
-    })
-    assert response == {'uri': vectors['conditionUri']}
+    response = jsonRPC('makeCondition', vectors['json'])
+    assert response == {
+        'uri': vectors['conditionUri'],
+        'bin': b16_to_b64(vectors['conditionBinary']),
+    }
 
 
 def decode_base64(data):

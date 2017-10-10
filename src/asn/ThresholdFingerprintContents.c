@@ -31,7 +31,7 @@ memb_threshold_constraint_1(asn_TYPE_descriptor_t *td, const void *sptr,
 	}
 }
 
-static asn_TYPE_member_t asn_MBR_subconditions_3[] = {
+static asn_TYPE_member_t asn_MBR_subconditions2_3[] = {
 	{ ATF_POINTER, 0, 0,
 		-1 /* Ambiguous tag (CHOICE?) */,
 		0,
@@ -42,19 +42,19 @@ static asn_TYPE_member_t asn_MBR_subconditions_3[] = {
 		""
 		},
 };
-static const ber_tlv_tag_t asn_DEF_subconditions_tags_3[] = {
+static const ber_tlv_tag_t asn_DEF_subconditions2_tags_3[] = {
 	(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
 	(ASN_TAG_CLASS_UNIVERSAL | (17 << 2))
 };
-static asn_SET_OF_specifics_t asn_SPC_subconditions_specs_3 = {
-	sizeof(struct subconditions),
-	offsetof(struct subconditions, _asn_ctx),
+static asn_SET_OF_specifics_t asn_SPC_subconditions2_specs_3 = {
+	sizeof(struct subconditions2),
+	offsetof(struct subconditions2, _asn_ctx),
 	2,	/* XER encoding is XMLValueList */
 };
 static /* Use -fall-defs-global to expose */
-asn_TYPE_descriptor_t asn_DEF_subconditions_3 = {
-	"subconditions",
-	"subconditions",
+asn_TYPE_descriptor_t asn_DEF_subconditions2_3 = {
+	"subconditions2",
+	"subconditions2",
 	SET_OF_free,
 	SET_OF_print,
 	SET_OF_constraint,
@@ -64,16 +64,16 @@ asn_TYPE_descriptor_t asn_DEF_subconditions_3 = {
 	SET_OF_encode_xer,
 	0, 0,	/* No PER support, use "-gen-PER" to enable */
 	0,	/* Use generic outmost tag fetcher */
-	asn_DEF_subconditions_tags_3,
-	sizeof(asn_DEF_subconditions_tags_3)
-		/sizeof(asn_DEF_subconditions_tags_3[0]) - 1, /* 1 */
-	asn_DEF_subconditions_tags_3,	/* Same as above */
-	sizeof(asn_DEF_subconditions_tags_3)
-		/sizeof(asn_DEF_subconditions_tags_3[0]), /* 2 */
+	asn_DEF_subconditions2_tags_3,
+	sizeof(asn_DEF_subconditions2_tags_3)
+		/sizeof(asn_DEF_subconditions2_tags_3[0]) - 1, /* 1 */
+	asn_DEF_subconditions2_tags_3,	/* Same as above */
+	sizeof(asn_DEF_subconditions2_tags_3)
+		/sizeof(asn_DEF_subconditions2_tags_3[0]), /* 2 */
 	0,	/* No PER visible constraints */
-	asn_MBR_subconditions_3,
+	asn_MBR_subconditions2_3,
 	1,	/* Single element */
-	&asn_SPC_subconditions_specs_3	/* Additional specs */
+	&asn_SPC_subconditions2_specs_3	/* Additional specs */
 };
 
 static asn_TYPE_member_t asn_MBR_ThresholdFingerprintContents_1[] = {
@@ -86,14 +86,14 @@ static asn_TYPE_member_t asn_MBR_ThresholdFingerprintContents_1[] = {
 		0,
 		"threshold"
 		},
-	{ ATF_NOFLAGS, 0, offsetof(struct ThresholdFingerprintContents, subconditions),
+	{ ATF_NOFLAGS, 0, offsetof(struct ThresholdFingerprintContents, subconditions2),
 		(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
 		0,
-		&asn_DEF_subconditions_3,
+		&asn_DEF_subconditions2_3,
 		0,	/* Defer constraints checking to the member type */
 		0,	/* PER is not compiled, use -gen-PER */
 		0,
-		"subconditions"
+		"subconditions2"
 		},
 };
 static const ber_tlv_tag_t asn_DEF_ThresholdFingerprintContents_tags_1[] = {
@@ -101,7 +101,7 @@ static const ber_tlv_tag_t asn_DEF_ThresholdFingerprintContents_tags_1[] = {
 };
 static const asn_TYPE_tag2member_t asn_MAP_ThresholdFingerprintContents_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 }, /* threshold */
-    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 } /* subconditions */
+    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 } /* subconditions2 */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_ThresholdFingerprintContents_specs_1 = {
 	sizeof(struct ThresholdFingerprintContents),

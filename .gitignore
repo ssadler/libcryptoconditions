@@ -19,3 +19,4 @@
 *.l[ao]
 *.[ao]
 *~
+converter-sample.c

@@ -3,4 +3,4 @@
 	url = git@github.com:jl777/komodo.git
 [submodule "ext/crypto-conditions"]
 	path = ext/crypto-conditions
-	url = git@github.com:rfcs/crypto-conditions.git
+	url = git@github.com:libscott/crypto-conditions.git

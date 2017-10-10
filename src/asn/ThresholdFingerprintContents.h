@@ -26,12 +26,12 @@ struct Condition;
 /* ThresholdFingerprintContents */
 typedef struct ThresholdFingerprintContents {
 	long	 threshold;
-	struct subconditions {
+	struct subconditions2 {
 		A_SET_OF(struct Condition) list;
 		
 		/* Context for parsing across buffer boundaries */
 		asn_struct_ctx_t _asn_ctx;
-	} subconditions;
+	} subconditions2;
 	
 	/* Context for parsing across buffer boundaries */
 	asn_struct_ctx_t _asn_ctx;
