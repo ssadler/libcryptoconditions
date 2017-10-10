@@ -35,6 +35,15 @@ def test_preimage_condition_binary():
     }
 
 
+def test_prefix():
+    vectors = _read_vectors('0001_test-minimal-prefix')
+    response = jsonRPC('makeCondition', vectors['json'])
+    assert response == {
+        'uri': vectors['conditionUri'],
+        'bin': b16_to_b64(vectors['conditionBinary']),
+    }
+
+
 def test_ed25519_make_condition():
     vectors = _read_vectors('0004_test-minimal-ed25519')
     response = jsonRPC('makeCondition', vectors['json'])

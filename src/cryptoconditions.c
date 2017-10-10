@@ -2,6 +2,7 @@
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
 #include "asn/Ed25519FingerprintContents.h"
+#include "asn/PrefixFingerprintContents.h"
 #include "asn/ThresholdFingerprintContents.h"
 #include "asn/OCTET_STRING.h"
 #include "include/cJSON.h"
@@ -164,7 +165,7 @@ unsigned long ed25519Cost(CC *cond) {
 }
 
 
-CC *ed25519Condition(cJSON *params, char *err) {
+CC *ed25519FromJSON(cJSON *params, char *err) {
     cJSON *pk_item = cJSON_GetObjectItem(params, "publicKey");
     if (!cJSON_IsString(pk_item)) {
         strcpy(err, "publicKey must be a string");
@@ -194,7 +195,7 @@ Condition_t *simpleAsnCondition(CC *cond) {
 }
 
 
-CC *preimageCondition(cJSON *params, char *err) {
+CC *preimageFromJSON(cJSON *params, char *err) {
     cJSON *preimage_item = cJSON_GetObjectItem(params, "preimage");
     if (!cJSON_IsString(preimage_item)) {
         strcpy(err, "preimage must be a string");
@@ -204,7 +205,7 @@ CC *preimageCondition(cJSON *params, char *err) {
 
     CC *cond = malloc(sizeof(CC));
     cond->type = preimageType;
-    cond->preimage = base64_decode(preimage_b64, strlen(preimage_b64), &cond->preimageLen);
+    cond->preimage = base64_decode(preimage_b64, strlen(preimage_b64), &cond->preimageLength);
     return cond;
 }
 
@@ -215,21 +216,110 @@ int preimageVerify(CC *cond, char *msg) {
 
 
 unsigned long preimageCost(CC *cond) {
-    return (int) cond->preimageLen;
+    return (int) cond->preimageLength;
 }
 
 
 char *preimageFingerprint(CC *cond) {
     char *hash = malloc(32); // TODO: need to allocate here?
-    crypto_hash_sha256(hash, cond->preimage, cond->preimageLen);
+    crypto_hash_sha256(hash, cond->preimage, cond->preimageLength);
     return hash;
 }
 
 
-CC *makeCondition(cJSON *params, char *err);
+/*
+ * prefix type
+ */
 
-CC *thresholdCondition(cJSON *params, char *err) {
-    int e;
+int prefixVerify(CC *cond, char *msg) {
+    return 1; // TODO
+}
+
+char *prefixFingerprint(CC *cond) {
+    PrefixFingerprintContents_t fp;
+    fp.subcondition =* cond->subcondition->type.asAsn(cond->subcondition);
+    fp.maxMessageLength = cond->maxMessageLength;
+    fp.prefix =* OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, cond->prefix, cond->prefixLength);
+    /* Encode and hash the result */
+    char out[1000^2];
+    char *hash = malloc(32);
+    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_PrefixFingerprintContents, &fp, out, 1024^2);
+    if (rc.encoded == -1) {
+        //panic?
+    }
+    crypto_hash_sha256(hash, out, rc.encoded);
+    //asn_DEF_OCTET_STRING.free_struct(&asn_DEF_OCTET_STRING, &(fp.publicKey), 0);
+    return hash;
+}
+
+
+unsigned long prefixCost(CC *cond) {
+    return 1024 + cond->subcondition->type.getCost(cond->subcondition) + cond->maxMessageLength;
+}
+
+
+Condition_t *prefixAsAsn(CC *cond) {
+    CompoundSha256Condition_t comp;
+    ConditionTypes_t *subtypes = asnSubtypes(1 << cond->subcondition->type.typeId);
+    comp.subtypes =* subtypes;
+    free(subtypes);
+
+    char *fp = prefixFingerprint(cond);
+    comp.fingerprint =* OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, fp, 32);
+    free(fp);
+
+    comp.cost = cond->type.getCost(cond);
+
+    Condition_t *condt = malloc(sizeof(Condition_t));
+    condt->present = Condition_PR_prefixSha256;
+    condt->choice.prefixSha256 = comp;
+    return condt;
+}
+
+
+uint32_t prefixSubtypes(CC *cond) {
+    return 1 << cond->subcondition->type.typeId;
+}
+
+
+CC *conditionFromJSON(cJSON *params, char *err);
+
+
+CC *prefixFromJSON(cJSON *params, char *err) {
+    cJSON *mml_item = cJSON_GetObjectItem(params, "maxMessageLength");
+    if (!cJSON_IsNumber(mml_item)) {
+        strcpy(err, "maxMessageLength must be a number");
+        return NULL;
+    }
+
+    cJSON *prefix_item = cJSON_GetObjectItem(params, "prefix");
+    if (!cJSON_IsString(prefix_item)) {
+        strcpy(err, "prefix must be a string");
+        return NULL;
+    }
+
+    cJSON *subcond_item = cJSON_GetObjectItem(params, "subfulfillment");
+    if (!cJSON_IsObject(subcond_item)) {
+        strcpy(err, "subfulfillment must be an oject");
+        return NULL;
+    }
+
+    CC *cond = malloc(sizeof(CC));
+    cond->type = prefixType;
+    cond->maxMessageLength = (unsigned long) mml_item->valuedouble;
+    CC *sub = conditionFromJSON(subcond_item, err);
+    if (NULL == sub) {
+        return NULL;
+    }
+    cond->subcondition = sub;
+
+    cond->prefix = base64_decode(prefix_item->valuestring, // TODO: verify
+            strlen(prefix_item->valuestring), &cond->prefixLength);
+    return cond;
+}
+
+
+CC *thresholdFromJSON(cJSON *params, char *err) {
     cJSON *threshold_item = cJSON_GetObjectItem(params, "threshold");
     if (!cJSON_IsNumber(threshold_item)) {
         strcpy(err, "threshold must be a number");
@@ -249,7 +339,7 @@ CC *thresholdCondition(cJSON *params, char *err) {
     cond->subconditions = malloc(cond->size * sizeof(CC*));
     
     for (int i=0; i<cond->size; i++) {
-        cond->subconditions[i] = makeCondition(cJSON_GetArrayItem(subfulfillments_item, i), err);
+        cond->subconditions[i] = conditionFromJSON(cJSON_GetArrayItem(subfulfillments_item, i), err);
         if (err[0] != '\0') {
             return NULL;
         }
@@ -258,13 +348,19 @@ CC *thresholdCondition(cJSON *params, char *err) {
 }
 
 
+/*
+ * Costs highest to lowest
+ */
 int cmpCost(const void *a, const void *b) {
     return (int) ( *(unsigned long*)b - *(unsigned long*)a );
 }
 
 
+/*
+ * Cost of a threshold condition
+ */
 unsigned long thresholdCost(CC *cond) {
-    CC *sub;
+    CC *sub; // Each subcondition
     unsigned long *costs = malloc(cond->size * sizeof(unsigned long));
     for (int i=0; i<cond->size; i++) {
         sub = cond->subconditions[i];
@@ -281,7 +377,14 @@ unsigned long thresholdCost(CC *cond) {
 
 
 int thresholdVerify(CC *cond, char *msg) {
-    return 1; // TODO
+    CC *sub;
+    for (int i=0; i<cond->size; i++) {
+        sub = cond->subconditions[i];
+        if (!cond->type.verify(cond, msg)) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 
@@ -317,6 +420,7 @@ char *thresholdFingerprint(CC *cond) {
         // TODO: Is there a bug here where the set is uninitialized?
         asn_set_add(&fp.subconditions2, subAsns[i]);
     }
+    free(subAsns);
 
     /* Encode and hash the result */
     char *out = malloc(1024^2); // TODO: overflow?
@@ -348,19 +452,26 @@ Condition_t *thresholdAsAsn(CC *cond) {
 }
 
 
-CC *makeCondition(cJSON *params, char *err) {
+CC *conditionFromJSON(cJSON *params, char *err) {
     CC *cond;
-    if (cJSON_HasObjectItem(params, "publicKey")) {
-        cond = ed25519Condition(params, err);
-    } else if (cJSON_HasObjectItem(params, "preimage")) {
-        cond = preimageCondition(params, err);
-    } else if (cJSON_HasObjectItem(params, "threshold")) {
-        cond = thresholdCondition(params, err);
-    } else {
-        strcpy(err, "cannot detect type of condition");
+    if (!cJSON_IsObject(params)) {
+        strcpy(err, "condition params must be an object");
         return NULL;
     }
-    return cond;
+    cJSON *type_item = cJSON_GetObjectItem(params, "type");
+    if (!cJSON_IsString(type_item)) {
+        strcpy(err, "\"type\" must be a string");
+        return NULL;
+    }
+    for (int i=0; i<typeRegistryLen; i++) {
+        if (typeRegistry[i] != NULL) {
+            if (streq(type_item->valuestring, typeRegistry[i]->name)) {
+                return typeRegistry[i]->fromJSON(params, err);
+            }
+        }
+    }
+    strcpy(err, "cannot detect type of condition");
+    return NULL;
 }
 
 
@@ -480,7 +591,7 @@ char *jsonRPC(char* input) {
     err[0] = '\0';
 
     if (streq(method, "makeCondition")) {
-        cond = makeCondition(params, err);
+        cond = conditionFromJSON(params, err);
         if (cond == NULL) {
             dumpStr(err, 100);
             out = jsonErr(err);
