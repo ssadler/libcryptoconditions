@@ -24,13 +24,11 @@ void build_decoding_table() {
 }
 
 
-char *base64_encode(const unsigned char *data,
-                    size_t input_length,
-                    size_t *output_length) {
+char *base64_encode(const unsigned char *data, size_t input_length) {
 
-    *output_length = 4 * ((input_length + 2) / 3);
+    size_t output_length = 4 * ((input_length + 2) / 3);
 
-    char *encoded_data = malloc(*output_length);
+    char *encoded_data = malloc(output_length + 1);
     if (encoded_data == NULL) return NULL;
 
     for (int i = 0, j = 0; i < input_length;) {
@@ -49,11 +47,13 @@ char *base64_encode(const unsigned char *data,
 
     int strip = mod_table[input_length % 3];
     for (int i = 0; i < strip; i++)
-        encoded_data[*output_length - 1 - i] = '\0';
+        encoded_data[output_length - 1 - i] = '\0';
+    // make sure there's a null termination for string protocol
+    encoded_data[output_length] = '\0';
 
 
     // url safe
-    for (int i=0; i<*output_length; i++) {
+    for (int i=0; i<output_length; i++) {
         if (encoded_data[i] == '/') encoded_data[i] = '_';
         if (encoded_data[i] == '+') encoded_data[i] = '-';
     }

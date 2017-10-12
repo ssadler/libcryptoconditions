@@ -26,8 +26,8 @@ def b16_to_b64(b16):
     return base64.urlsafe_b64encode(base64.b16decode(b16)).rstrip('=')
 
 
-def test_preimage_condition_binary():
-    vectors = _read_vectors('0000_test-minimal-preimage')
+def _test_condition(vectors_file):
+    vectors = _read_vectors(vectors_file)
     response = jsonRPC('makeCondition', vectors['json'])
     assert response == {
         'uri': vectors['conditionUri'],
@@ -35,27 +35,47 @@ def test_preimage_condition_binary():
     }
 
 
-def test_prefix():
-    vectors = _read_vectors('0001_test-minimal-prefix')
-    response = jsonRPC('makeCondition', vectors['json'])
-    assert response == {
-        'uri': vectors['conditionUri'],
+def test_preimage_condition():
+    _test_condition('0000_test-minimal-preimage')
+
+
+def test_prefix_condition():
+    _test_condition('0001_test-minimal-prefix')
+
+
+def test_threshold_condition():
+    _test_condition('0002_test-minimal-threshold')
+
+
+def test_ed25519_condition():
+    _test_condition('0004_test-minimal-ed25519')
+
+
+def test_ed25519_fulfillment():
+    _test_decode_fulfillment('0004_test-minimal-ed25519')
+
+
+def test_prefix_fulfillment():
+    _test_decode_fulfillment('0001_test-minimal-prefix')
+
+
+def test_threshold_fulfillment_0002():
+    _test_decode_fulfillment('0002_test-minimal-threshold')
+
+
+def test_threshold_fulfillment_0017():
+    _test_decode_fulfillment('0017_test-advanced-notarized-receipt-multiple-notaries')
+
+
+def test_anon():
+    vectors = _read_vectors('0002_test-minimal-threshold')
+    response = jsonRPC('decodeCondition', {
         'bin': b16_to_b64(vectors['conditionBinary']),
-    }
+    })
 
 
-def test_ed25519_make_condition():
-    vectors = _read_vectors('0004_test-minimal-ed25519')
-    response = jsonRPC('makeCondition', vectors['json'])
-    b64bin = b16_to_b64(vectors['conditionBinary'])
-    assert response == {
-        'uri': vectors['conditionUri'],
-        'bin': b64bin,
-    }
-
-
-def test_ed25519_decode_fulfillment():
-    vectors = _read_vectors('0004_test-minimal-ed25519')
+def _test_decode_fulfillment(vectors_file):
+    vectors = _read_vectors(vectors_file)
     response = jsonRPC('decodeFulfillment', {
         'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
     })
@@ -75,15 +95,6 @@ def test_ed25519_verify():
     assert jsonRPC('verifyFulfillment', req) == {'valid': True}
     req['message'] = 'a'
     assert jsonRPC('verifyFulfillment', req) == {'valid': False}
-
-
-def test_threshold():
-    vectors = _read_vectors('0002_test-minimal-threshold')
-    response = jsonRPC('makeCondition', vectors['json'])
-    assert response == {
-        'uri': vectors['conditionUri'],
-        'bin': b16_to_b64(vectors['conditionBinary']),
-    }
 
 
 def decode_base64(data):
