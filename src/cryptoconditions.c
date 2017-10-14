@@ -84,7 +84,6 @@ uint32_t fromAsnSubtypes(ConditionTypes_t types) {
     uint32_t mask = 0;
     for (int i=0; i<types.size*8; i++) {
         if (types.buf[i >> 3] & (1 << (7 - i % 8))) {
-            fprintf(stderr, "subtype:%u\n", i);
             mask |= 1 << i;
         }
     }
@@ -203,15 +202,9 @@ int depth = 0;
 
 Condition_t asnCondition(CC *cond) {
     Condition_t condt;
-    for (int i=0; i<depth; i++) {
-        fprintf(stderr, "  ");
-    }
-    depth++;
-    fprintf(stderr, "%s\n", cond->type->name);
     SimpleSha256Condition_t simple;
     CompoundSha256Condition_t compound;
     simple.cost = cond->type->getCost(cond);
-    fprintf(stderr, "cost:%u\n", simple.cost);
     char *fp = cond->type->fingerprint(cond);
     simple.fingerprint =* OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, fp, 32);
     free(fp);
@@ -221,6 +214,7 @@ Condition_t asnCondition(CC *cond) {
     if (cond->type->hasSubtypes) {
         compound.fingerprint = simple.fingerprint;
         compound.cost = simple.cost;
+        uint32_t subtypes = cond->type->getSubtypes(cond);
         compound.subtypes = asnSubtypes(cond->type->getSubtypes(cond));
         condt.choice.thresholdSha256 = compound;
     }
@@ -228,10 +222,6 @@ Condition_t asnCondition(CC *cond) {
     Condition_t *condt2 = malloc(sizeof(Condition_t));
     *condt2 = condt;
     depth--;
-    for (int i=0; i<depth; i++) {
-        fprintf(stderr, "  ");
-    }
-    fprintf(stderr, "%sEND\n", cond->type->name);
     return condt;
 }
 
@@ -352,12 +342,11 @@ void prefixFfillToCC(Fulfillment_t *ffill, CC *cond) {
 
 
 uint32_t prefixSubtypes(CC *cond) {
-    return getSubtypes(cond->subcondition);
+    return getSubtypes(cond->subcondition) & ~(1 << prefixType.typeId);
 }
 
 
 int anonVerify(CC *cond, char *msg) {
-    fprintf(stderr, "anonVerify\n");
     return 0;
 }
 
@@ -488,7 +477,8 @@ int cmpConditions(const void *a, const void *b) {
     char bufa[1000], bufb[1000];
     asn_enc_rval_t r0 = der_encode_to_buffer(&asn_DEF_Condition, *(Condition_t**)a, bufa, 1000);
     asn_enc_rval_t r1 = der_encode_to_buffer(&asn_DEF_Condition, *(Condition_t**)b, bufb, 1000);
-    return (r0.encoded - r1.encoded) || strcmp(bufa, bufb);
+    int diff = r0.encoded - r1.encoded;
+    return diff != 0 ? diff : strcmp(bufa, bufb);
 }
 
 
@@ -504,6 +494,12 @@ char *thresholdFingerprint(CC *cond) {
 
     /* Sort conditions */
     qsort(subAsns, cond->size, sizeof(Condition_t*), cmpConditions);
+
+    char bufa[1000];
+    asn_enc_rval_t r;
+    for (int i=0; i<cond->size; i++) {
+        r = der_encode_to_buffer(&asn_DEF_Condition, subAsns[i], bufa, 1000);
+    }
 
     /* Create fingerprint */
     ThresholdFingerprintContents_t fp;
@@ -731,6 +727,11 @@ void cc_free(CC *cond) {
 
 
 char *jsonRPC(char* input) {
+
+    ConditionTypes_t typ = asnSubtypes(1<<1 | 1<<4);
+    char ou[100];
+    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_ConditionTypes, &typ, ou, 100);
+
     // TODO: Return proper errors
     // cJSON free structures? (everywhere)
     cJSON *root = cJSON_Parse(input);
@@ -752,7 +753,6 @@ char *jsonRPC(char* input) {
     if (streq(method, "makeCondition")) {
         cond = conditionFromJSON(params, err);
         if (cond == NULL) {
-            dumpStr(err, 100);
             out = jsonErr(err);
         } else {
             out = jsonCondition(cond);
