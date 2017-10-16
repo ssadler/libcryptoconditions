@@ -2,6 +2,12 @@
 #include <stddef.h>
 
 
+#ifndef	CRYPTOCONDITIONS_H
+#define	CRYPTOCONDITIONS_H
+
+#define BUF_SIZE 1024 * 1024
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,85 +42,30 @@ typedef struct CC {
 	};
 } CC;
 
+struct CCType ed25519Type;
+struct CCType anonType;
+struct CCType prefixType;
+struct CCType preimageType;
+struct CCType thresholdType;
 
 int readFulfillment(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
-
-
-/*
- * preimage Condition Type (0)
- */
-int preimageVerify(struct CC *cond, char *msg);
-char *preimageFingerprint(struct CC *cond);
-unsigned long preimageCost(struct CC *cond);
-CC *preimageFromJSON(cJSON *params, char *err);
-void preimageFfillToCC(Fulfillment_t *ffill, CC *cond);
-
-struct CCType preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageVerify, &preimageFingerprint, &preimageCost, NULL, &preimageFromJSON, &preimageFfillToCC };
-
-
-/*
- * prefix Condition type (1)
- */
-int prefixVerify(struct CC *cond, char *msg);
-char *prefixFingerprint(struct CC *cond);
-unsigned long prefixCost(struct CC *cond);
-uint32_t prefixSubtypes(struct CC *cond);
-CC *prefixFromJSON(cJSON *params, char *err);
-void prefixFfillToCC(Fulfillment_t *ffill, CC *cond);
-
-struct CCType prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerify, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixFfillToCC };
-
-
-/*
- * threshold Condition type (2)
- */
-int thresholdVerify(struct CC *cond, char *msg);
-char *thresholdFingerprint(struct CC *cond);
-unsigned long thresholdCost(struct CC *cond);
-uint32_t thresholdSubtypes(struct CC *cond);
-CC *thresholdFromJSON(cJSON *params, char *err);
-void thresholdFfillToCC(Fulfillment_t *ffill, CC *cond);
-
-struct CCType thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerify, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdFfillToCC };
-
-
-/*
- * ed25519 Condition Type (4)
- */
-int ed25519Verify(struct CC *cond, char *msg);
-char *ed25519Fingerprint(struct CC *cond);
-unsigned long ed25519Cost(struct CC *cond);
-CC *ed25519FromJSON(cJSON *params, char *err);
-void ed25519FfillToCC(Fulfillment_t *ffill, CC *cond);
-
-struct CCType ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519Verify, &ed25519Fingerprint, &ed25519Cost, NULL, &ed25519FromJSON, &ed25519FfillToCC };
-
-
-/*
- * Anon Type (Condition with no fulfillment details, ie a decoded condition URI)
- */
-
-int anonVerify(struct CC *cond, char *msg);
-char *anonFingerprint(struct CC *cond);
-unsigned long anonCost(struct CC *cond);
-uint32_t anonSubtypes(struct CC *cond);
-
-struct CCType anonType = { -1, "anon                           ", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL };
 
 /*
  * Registry
  */
-struct CCType *typeRegistry[] = { &preimageType, &prefixType, &thresholdType, NULL, &ed25519Type };
-int typeRegistryLength = 5;
+struct CCType *typeRegistry[32];
+int typeRegistryLength;
 
 void freeCondition(CC *cond);
 Condition_t *asnCondition(CC *cond);
 void ffillToCC(Fulfillment_t *ffill, CC *cond);
 void mkAnon(Condition_t *asnCond, CC *cond);
+CCType *getTypeByAsnEnum(Condition_PR present);
+
 
 
 #ifdef __cplusplus
 }
 #endif
 
-
+#endif  /* CRYPTOCONDITIONS_H */
