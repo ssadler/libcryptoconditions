@@ -7,8 +7,14 @@
 #include "cryptoconditions.h"
 
 
-static int prefixVerify(CC *cond, char *msg) {
-    return 1; // TODO
+static int prefixVerify(CC *cond, char *msg, size_t msgLength) {
+    size_t prefixedLength = cond->prefixLength + msgLength;
+    char *prefixed = malloc(prefixedLength);
+    memcpy(prefixed, cond->prefix, cond->prefixLength);
+    memcpy(prefixed + cond->prefixLength, msg, msgLength);
+    int res = cc_verifyFulfillment(cond->subcondition, prefixed, prefixedLength);
+    free(prefixed);
+    return res;
 }
 
 

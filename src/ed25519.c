@@ -24,8 +24,8 @@ char *ed25519Fingerprint(CC *cond) {
 }
 
 
-int ed25519Verify(CC *cond, char *msg) {
-    int rc = crypto_sign_verify_detached(cond->signature, msg, strlen(msg), cond->publicKey);
+int ed25519Verify(CC *cond, char *msg, size_t length) {
+    int rc = crypto_sign_verify_detached(cond->signature, msg, length, cond->publicKey);
     return rc == 0;
 }
 

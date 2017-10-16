@@ -47,7 +47,6 @@ char *cc_conditionUri(CC *cond) {
 
     char *out = malloc(1000);
     sprintf(out, "ni:///sha-256;%s?fpt=%s&cost=%i", encoded, cond->type->name, cost);
-    fprintf(stderr, "URI:%s\n", out);
     
     if (cond->type->hasSubtypes) {
         appendUriSubtypes(cond->type->getSubtypes(cond), out);
@@ -125,7 +124,6 @@ static cJSON *jsonCondition(CC *cond) {
     if (rc.encoded == -1) {
         // TODO: assert
     }
-    fprintf(stderr, "LEN:%u\n", rc.encoded);
 
     cJSON *root = cJSON_CreateObject();
     char *uri = cc_conditionUri(cond);
@@ -222,8 +220,8 @@ int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_
 }
 
 
-int cc_verifyFulfillment(CC *cond, char *msg) {
-    return cond->type->verify(cond, msg);
+int cc_verifyFulfillment(CC *cond, char *msg, size_t length) {
+    return cond->type->verify(cond, msg, length);
 }
 
 
@@ -272,8 +270,9 @@ static cJSON *jsonVerifyFulfillment(cJSON *params) {
     int rc = cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len);
     if (rc != 0) return jsonErr("Invalid fulfillment payload");
 
+    int valid = cc_verifyFulfillment(cond, msg_item->valuestring, strlen(msg_item->valuestring)); // TODO: b64 decode
+    
     cJSON *out = cJSON_CreateObject();
-    int valid = cc_verifyFulfillment(cond, msg_item->valuestring);
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));
     return out;
 }

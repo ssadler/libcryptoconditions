@@ -6,7 +6,7 @@
 #include "cryptoconditions.h"
 
 
-CC *preimageFromJSON(cJSON *params, char *err) {
+static CC *preimageFromJSON(cJSON *params, char *err) {
     cJSON *preimage_item = cJSON_GetObjectItem(params, "preimage");
     if (!cJSON_IsString(preimage_item)) {
         strcpy(err, "preimage must be a string");
@@ -21,24 +21,24 @@ CC *preimageFromJSON(cJSON *params, char *err) {
 }
 
 
-int preimageVerify(CC *cond, char *msg) {
+static int preimageVerify(CC *cond, char *msg, size_t length) {
     return 1; // no message to verify
 }
 
 
-unsigned long preimageCost(CC *cond) {
+static unsigned long preimageCost(CC *cond) {
     return (unsigned long) cond->preimageLength;
 }
 
 
-char *preimageFingerprint(CC *cond) {
+static char *preimageFingerprint(CC *cond) {
     char *hash = malloc(32); // TODO: need to allocate here?
     crypto_hash_sha256(hash, cond->preimage, cond->preimageLength);
     return hash;
 }
 
 
-void preimageFfillToCC(Fulfillment_t *ffill, CC *cond) {
+static void preimageFfillToCC(Fulfillment_t *ffill, CC *cond) {
     cond->type = &cc_preimageType;
     PreimageFulfillment_t p = ffill->choice.preimageSha256;
     cond->preimage = malloc(p.preimage.size);

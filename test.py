@@ -1,6 +1,7 @@
 import json
 import ctypes
 import base64
+import pytest
 from ctypes import *
 
 
@@ -18,53 +19,11 @@ def jsonRPC(method, params):
         'method': method,
         'params': params,
     }))
-    print repr(out)
     return json.loads(out)
 
 
 def b16_to_b64(b16):
     return base64.urlsafe_b64encode(base64.b16decode(b16)).rstrip('=')
-
-
-def _test_condition(vectors_file):
-    vectors = _read_vectors(vectors_file)
-    response = jsonRPC('makeCondition', vectors['json'])
-    assert response == {
-        'uri': vectors['conditionUri'],
-        'bin': b16_to_b64(vectors['conditionBinary']),
-    }
-
-
-def test_preimage_condition():
-    _test_condition('0000_test-minimal-preimage')
-
-
-def test_prefix_condition():
-    _test_condition('0001_test-minimal-prefix')
-
-
-def test_threshold_condition():
-    _test_condition('0002_test-minimal-threshold')
-
-
-def test_ed25519_condition():
-    _test_condition('0004_test-minimal-ed25519')
-
-
-def test_ed25519_fulfillment():
-    _test_decode_fulfillment('0004_test-minimal-ed25519')
-
-
-def test_prefix_fulfillment():
-    _test_decode_fulfillment('0001_test-minimal-prefix')
-
-
-def test_threshold_fulfillment_0002():
-    _test_decode_fulfillment('0002_test-minimal-threshold')
-
-
-def test_threshold_fulfillment_0017():
-    _test_decode_fulfillment('0017_test-advanced-notarized-receipt-multiple-notaries')
 
 
 def test_anon():
@@ -74,7 +33,49 @@ def test_anon():
     })
 
 
-def _test_decode_fulfillment(vectors_file):
+v0000 = '0000_test-minimal-preimage'
+v0001 = '0001_test-minimal-prefix'
+v0002 = '0002_test-minimal-threshold'
+v0004 = '0004_test-minimal-ed25519'
+v0017 = '0017_test-advanced-notarized-receipt-multiple-notaries'
+
+all_vectors = {v0000, v0001, v0002, v0004, v0017}
+
+
+@pytest.mark.parametrize('vectors_file', all_vectors)
+def test_condition(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    response = jsonRPC('makeCondition', vectors['json'])
+    assert response == {
+        'uri': vectors['conditionUri'],
+        'bin': b16_to_b64(vectors['conditionBinary']),
+    }
+
+
+@pytest.mark.parametrize('vectors_file', all_vectors)
+def test_verify_passes(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    req = {
+        'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
+        'message': '',
+        'uri': vectors['conditionUri'],
+    }
+    assert jsonRPC('verifyFulfillment', req) == {'valid': True}
+
+
+@pytest.mark.parametrize('vectors_file', [v0004, v0017])
+def test_verify_fails(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    req = {
+        'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
+        'message': 'bla',
+        'uri': vectors['conditionUri'],
+    }
+    assert jsonRPC('verifyFulfillment', req) == {'valid': False}
+
+
+@pytest.mark.parametrize('vectors_file', all_vectors)
+def test_decode_fulfillment(vectors_file):
     vectors = _read_vectors(vectors_file)
     response = jsonRPC('decodeFulfillment', {
         'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
@@ -83,18 +84,6 @@ def _test_decode_fulfillment(vectors_file):
         'uri': vectors['conditionUri'],
         'bin': b16_to_b64(vectors['conditionBinary']),
     }
-
-
-def test_ed25519_verify():
-    vectors = _read_vectors('0004_test-minimal-ed25519')
-    req = {
-        'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
-        'message': '',
-        'uri': vectors['conditionUri'],
-    }
-    assert jsonRPC('verifyFulfillment', req) == {'valid': True}
-    req['message'] = 'a'
-    assert jsonRPC('verifyFulfillment', req) == {'valid': False}
 
 
 def decode_base64(data):

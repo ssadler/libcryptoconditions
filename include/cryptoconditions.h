@@ -21,7 +21,7 @@ typedef struct CCType {
     char name[100];
     Condition_PR asnType;
     int hasSubtypes;
-    int (*verify)(struct CC *cond, char *msg);
+    int (*verify)(struct CC *cond, char *msg, size_t msgLength);
     char *(*fingerprint)(struct CC *cond);
     unsigned long (*getCost)(struct CC *cond);
     uint32_t (*getSubtypes)(struct CC *cond);

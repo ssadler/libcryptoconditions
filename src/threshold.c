@@ -8,7 +8,7 @@
 
 
 
-uint32_t thresholdSubtypes(CC *cond) {
+static uint32_t thresholdSubtypes(CC *cond) {
     uint32_t mask = 0;
     for (int i=0; i<cond->size; i++) {
         mask |= getSubtypes(cond->subconditions[i]);
@@ -18,13 +18,13 @@ uint32_t thresholdSubtypes(CC *cond) {
 }
 
 
-int cmpCost(const void *a, const void *b) {
+static int cmpCost(const void *a, const void *b) {
     /* costs in descending order */
     return (int) ( *(unsigned long*)b - *(unsigned long*)a );
 }
 
 
-unsigned long thresholdCost(CC *cond) {
+static unsigned long thresholdCost(CC *cond) {
     CC *sub;
     unsigned long *costs = malloc(cond->size * sizeof(unsigned long));
     for (int i=0; i<cond->size; i++) {
@@ -41,19 +41,17 @@ unsigned long thresholdCost(CC *cond) {
 }
 
 
-int thresholdVerify(CC *cond, char *msg) {
-    CC *sub;
-    for (int i=0; i<cond->size; i++) {
-        sub = cond->subconditions[i];
-        if (!cond->type->verify(cond, msg)) {
-            return 0;
-        }
+static int thresholdVerify(CC *cond, char *msg, size_t length) {
+    int res;
+    for (int i=0; i<cond->threshold; i++) {
+        res = cc_verifyFulfillment(cond->subconditions[i], msg, length);
+        if (!res) return 0;
     }
     return 1;
 }
 
 
-int cmpConditions(const void *a, const void *b) {
+static int cmpConditions(const void *a, const void *b) {
     /* Compare conditions by their ASN binary representation */
     char bufa[BUF_SIZE], bufb[BUF_SIZE];
     asn_enc_rval_t r0 = der_encode_to_buffer(&asn_DEF_Condition, *(Condition_t**)a, bufa, BUF_SIZE);
@@ -64,7 +62,7 @@ int cmpConditions(const void *a, const void *b) {
 
 //SAFE
 
-char *thresholdFingerprint(CC *cond) {
+static char *thresholdFingerprint(CC *cond) {
     Condition_t **subAsns = malloc(cond->size * sizeof(Condition_t*));
 
     /* Convert each CC into an ASN condition */
@@ -101,7 +99,7 @@ char *thresholdFingerprint(CC *cond) {
 }
 
 
-void thresholdFfillToCC(Fulfillment_t *ffill, CC *cond) {
+static void thresholdFfillToCC(Fulfillment_t *ffill, CC *cond) {
     cond->type = &cc_thresholdType;
     ThresholdFulfillment_t *t = ffill->choice.thresholdSha256;
     cond->threshold = t->subfulfillments.list.count;
@@ -119,7 +117,7 @@ void thresholdFfillToCC(Fulfillment_t *ffill, CC *cond) {
 
 
 
-CC *thresholdFromJSON(cJSON *params, char *err) {
+static CC *thresholdFromJSON(cJSON *params, char *err) {
     cJSON *threshold_item = cJSON_GetObjectItem(params, "threshold");
     if (!cJSON_IsNumber(threshold_item)) {
         strcpy(err, "threshold must be a number");
