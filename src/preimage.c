@@ -15,7 +15,7 @@ CC *preimageFromJSON(cJSON *params, char *err) {
     char *preimage_b64 = preimage_item->valuestring;
 
     CC *cond = malloc(sizeof(CC));
-    cond->type = &preimageType;
+    cond->type = &cc_preimageType;
     cond->preimage = base64_decode(preimage_b64, strlen(preimage_b64), &cond->preimageLength);
     return cond;
 }
@@ -39,7 +39,7 @@ char *preimageFingerprint(CC *cond) {
 
 
 void preimageFfillToCC(Fulfillment_t *ffill, CC *cond) {
-    cond->type = &preimageType;
+    cond->type = &cc_preimageType;
     PreimageFulfillment_t p = ffill->choice.preimageSha256;
     cond->preimage = malloc(p.preimage.size);
     memcpy(cond->preimage, p.preimage.buf, p.preimage.size);
@@ -47,4 +47,4 @@ void preimageFfillToCC(Fulfillment_t *ffill, CC *cond) {
 }
 
 
-struct CCType preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageVerify, &preimageFingerprint, &preimageCost, NULL, &preimageFromJSON, &preimageFfillToCC };
+struct CCType cc_preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageVerify, &preimageFingerprint, &preimageCost, NULL, &preimageFromJSON, &preimageFfillToCC };

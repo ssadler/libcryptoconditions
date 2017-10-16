@@ -7,10 +7,10 @@
 #include "cryptoconditions.h"
 
 
-void mkAnon(Condition_t *asnCond, CC *cond) {
+static void mkAnon(Condition_t *asnCond, CC *cond) {
     CCType realType =* getTypeByAsnEnum(asnCond->present);
     cond->type = (CCType*) malloc(sizeof(CCType));
-    *cond->type = anonType;
+    *cond->type = cc_anonType;
     strcpy(cond->type->name, realType.name);
     cond->type->hasSubtypes = realType.hasSubtypes;
     cond->type->typeId = realType.typeId;
@@ -24,26 +24,26 @@ void mkAnon(Condition_t *asnCond, CC *cond) {
 }
 
 
-int anonVerify(CC *cond, char *msg) {
+static int anonVerify(CC *cond, char *msg) {
     return 0;
 }
 
 
-char *anonFingerprint(CC *cond) {
+static char *anonFingerprint(CC *cond) {
     char *out = malloc(32);
     memcpy(out, cond->fingerprint, 32);
     return out;
 }
 
 
-unsigned long anonCost(CC *cond) {
+static unsigned long anonCost(CC *cond) {
     return cond->cost;
 }
 
 
-uint32_t anonSubtypes(CC *cond) {
+static uint32_t anonSubtypes(CC *cond) {
     return cond->subtypes;
 }
 
 
-struct CCType anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL };
+struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL };

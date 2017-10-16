@@ -7,12 +7,12 @@
 #include "cryptoconditions.h"
 
 
-int prefixVerify(CC *cond, char *msg) {
+static int prefixVerify(CC *cond, char *msg) {
     return 1; // TODO
 }
 
 
-char *prefixFingerprint(CC *cond) {
+static char *prefixFingerprint(CC *cond) {
     PrefixFingerprintContents_t fp;
     Condition_t *subCond = asnCondition(cond->subcondition);
     fp.subcondition = *subCond;
@@ -33,14 +33,14 @@ char *prefixFingerprint(CC *cond) {
 }
 
 
-unsigned long prefixCost(CC *cond) {
+static unsigned long prefixCost(CC *cond) {
     return 1024 + cond->prefixLength + cond->maxMessageLength +
         cond->subcondition->type->getCost(cond->subcondition);
 }
 
 
-void prefixFfillToCC(Fulfillment_t *ffill, CC *cond) {
-    cond->type = &prefixType;
+static void prefixFfillToCC(Fulfillment_t *ffill, CC *cond) {
+    cond->type = &cc_prefixType;
     PrefixFulfillment_t *p = ffill->choice.prefixSha256;
     cond->maxMessageLength = p->maxMessageLength;
     cond->prefix = malloc(p->prefix.size);
@@ -51,12 +51,12 @@ void prefixFfillToCC(Fulfillment_t *ffill, CC *cond) {
 }
 
 
-uint32_t prefixSubtypes(CC *cond) {
-    return getSubtypes(cond->subcondition) & ~(1 << prefixType.typeId);
+static uint32_t prefixSubtypes(CC *cond) {
+    return getSubtypes(cond->subcondition) & ~(1 << cc_prefixType.typeId);
 }
 
 
-CC *prefixFromJSON(cJSON *params, char *err) {
+static CC *prefixFromJSON(cJSON *params, char *err) {
     cJSON *mml_item = cJSON_GetObjectItem(params, "maxMessageLength");
     cJSON *prefix_item = cJSON_GetObjectItem(params, "prefix");
     cJSON *subcond_item = cJSON_GetObjectItem(params, "subfulfillment");
@@ -77,7 +77,7 @@ CC *prefixFromJSON(cJSON *params, char *err) {
     }
 
     CC *cond = malloc(sizeof(CC));
-    cond->type = &prefixType;
+    cond->type = &cc_prefixType;
     cond->maxMessageLength = (unsigned long) mml_item->valuedouble;
     CC *sub = conditionFromJSON(subcond_item, err);
     if (NULL == sub) {
@@ -94,4 +94,4 @@ CC *prefixFromJSON(cJSON *params, char *err) {
 }
 
 
-struct CCType prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerify, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixFfillToCC };
+struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerify, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixFfillToCC };

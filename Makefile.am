@@ -2,11 +2,6 @@
 lib_LTLIBRARIES=libcryptoconditions.la
 libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/utils.c \
-	src/threshold.c \
-	src/ed25519.c \
-	src/prefix.c \
-	src/preimage.c \
-	src/anon.c \
 	src/include/base58.c \
 	src/include/cJSON.c \
 	src/asn/Condition.c	\

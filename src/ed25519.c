@@ -45,7 +45,7 @@ CC *ed25519FromJSON(cJSON *params, char *err) {
     size_t binsz;
 
     CC *cond = malloc(sizeof(CC));
-    cond->type = &ed25519Type;
+    cond->type = &cc_ed25519Type;
     cond->publicKey = base64_decode(pk_b64, strlen(pk_b64), &binsz);
     cond->signature = NULL;
     cJSON_free(pk_item);
@@ -54,7 +54,7 @@ CC *ed25519FromJSON(cJSON *params, char *err) {
 
 
 void ed25519FfillToCC(Fulfillment_t *ffill, CC *cond) {
-    cond->type = &ed25519Type;
+    cond->type = &cc_ed25519Type;
     cond->publicKey = malloc(32);
     memcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf, 32);
     cond->signature = malloc(64);
@@ -62,4 +62,4 @@ void ed25519FfillToCC(Fulfillment_t *ffill, CC *cond) {
 }
 
 
-struct CCType ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519Verify, &ed25519Fingerprint, &ed25519Cost, NULL, &ed25519FromJSON, &ed25519FfillToCC };
+struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519Verify, &ed25519Fingerprint, &ed25519Cost, NULL, &ed25519FromJSON, &ed25519FfillToCC };

@@ -13,7 +13,7 @@ uint32_t thresholdSubtypes(CC *cond) {
     for (int i=0; i<cond->size; i++) {
         mask |= getSubtypes(cond->subconditions[i]);
     }
-    mask &= ~(1 << thresholdType.typeId);
+    mask &= ~(1 << cc_thresholdType.typeId);
     return mask;
 }
 
@@ -102,7 +102,7 @@ char *thresholdFingerprint(CC *cond) {
 
 
 void thresholdFfillToCC(Fulfillment_t *ffill, CC *cond) {
-    cond->type = &thresholdType;
+    cond->type = &cc_thresholdType;
     ThresholdFulfillment_t *t = ffill->choice.thresholdSha256;
     cond->threshold = t->subfulfillments.list.count;
     cond->size = cond->threshold + t->subconditions.list.count;
@@ -133,7 +133,7 @@ CC *thresholdFromJSON(cJSON *params, char *err) {
     }
 
     CC *cond = malloc(sizeof(CC));
-    cond->type = &thresholdType;
+    cond->type = &cc_thresholdType;
     cond->threshold = (long)threshold_item->valuedouble;
     cond->size = cJSON_GetArraySize(subfulfillments_item);
     cond->subconditions = malloc(cond->size * sizeof(CC*));
@@ -149,4 +149,4 @@ CC *thresholdFromJSON(cJSON *params, char *err) {
 }
 
 
-struct CCType thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerify, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdFfillToCC };
+struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerify, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdFfillToCC };

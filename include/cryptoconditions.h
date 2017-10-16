@@ -42,25 +42,30 @@ typedef struct CC {
 	};
 } CC;
 
-struct CCType ed25519Type;
-struct CCType anonType;
-struct CCType prefixType;
-struct CCType preimageType;
-struct CCType thresholdType;
+struct CCType cc_ed25519Type;
+struct CCType cc_anonType;
+struct CCType cc_prefixType;
+struct CCType cc_preimageType;
+struct CCType cc_thresholdType;
 
-int readFulfillment(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
 
 /*
- * Registry
+ * Common API
  */
-struct CCType *typeRegistry[32];
-int typeRegistryLength;
-
-void freeCondition(CC *cond);
-Condition_t *asnCondition(CC *cond);
-void ffillToCC(Fulfillment_t *ffill, CC *cond);
-void mkAnon(Condition_t *asnCond, CC *cond);
+int cc_readFulfillment(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
+void cc_freeCondition(CC *cond);
+void cc_ffillToCC(Fulfillment_t *ffill, CC *cond);
 CCType *getTypeByAsnEnum(Condition_PR present);
+static uint32_t fromAsnSubtypes(ConditionTypes_t types);
+
+/*
+ * Internal API
+ */
+
+static void mkAnon(Condition_t *asnCond, CC *cond);
+static Condition_t *asnCondition(CC *cond);
+static uint32_t getSubtypes(CC *cond);
+static CC *conditionFromJSON(cJSON *params, char *err);
 
 
 
