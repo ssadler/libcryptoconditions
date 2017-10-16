@@ -132,16 +132,3 @@ void dumpStr(char *str, size_t len) {
     }
     fprintf(stderr, "\n");
 }
-
-/*
-static int consume_bytes(const void *buffer, size_t size, void *app_key) {
-	char *buf = 
-}
-
-
-char *asn_encode(struct asn_TYPE_descriptor_s *type_descriptor, void *struct_ptr, size_t *olen) {
-    char **buf = malloc(sizeof(char*));
-    *buf = NULL;
-	asn_enc_rval_t rc = der_encode(type_descriptor, struct_pointer, consume_bytes, buf);
-}
-*/

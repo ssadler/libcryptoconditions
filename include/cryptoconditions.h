@@ -108,7 +108,7 @@ struct CCType *typeRegistry[] = { &preimageType, &prefixType, &thresholdType, NU
 int typeRegistryLength = 5;
 
 void freeCondition(CC *cond);
-Condition_t asnCondition(CC *cond);
+Condition_t *asnCondition(CC *cond);
 void ffillToCC(Fulfillment_t *ffill, CC *cond);
 void mkAnon(Condition_t *asnCond, CC *cond);
 
