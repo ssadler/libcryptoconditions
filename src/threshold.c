@@ -7,7 +7,6 @@
 #include "cryptoconditions.h"
 
 
-
 static uint32_t thresholdSubtypes(CC *cond) {
     uint32_t mask = 0;
     for (int i=0; i<cond->size; i++) {
@@ -41,10 +40,10 @@ static unsigned long thresholdCost(CC *cond) {
 }
 
 
-static int thresholdVerify(CC *cond, char *msg, size_t length) {
+static int thresholdVerifyMessage(CC *cond, char *msg, size_t length) {
     int res;
     for (int i=0; i<cond->threshold; i++) {
-        res = cc_verifyFulfillment(cond->subconditions[i], msg, length);
+        res = cc_verifyMessage(cond->subconditions[i], msg, length);
         if (!res) return 0;
     }
     return 1;
@@ -61,6 +60,7 @@ static int cmpConditions(const void *a, const void *b) {
 }
 
 //SAFE
+
 
 static char *thresholdFingerprint(CC *cond) {
     Condition_t **subAsns = malloc(cond->size * sizeof(Condition_t*));
@@ -116,7 +116,6 @@ static void thresholdFfillToCC(Fulfillment_t *ffill, CC *cond) {
 }
 
 
-
 static CC *thresholdFromJSON(cJSON *params, char *err) {
     cJSON *threshold_item = cJSON_GetObjectItem(params, "threshold");
     if (!cJSON_IsNumber(threshold_item)) {
@@ -132,19 +131,29 @@ static CC *thresholdFromJSON(cJSON *params, char *err) {
 
     CC *cond = malloc(sizeof(CC));
     cond->type = &cc_thresholdType;
-    cond->threshold = (long)threshold_item->valuedouble;
+    cond->threshold = (long) threshold_item->valuedouble;
     cond->size = cJSON_GetArraySize(subfulfillments_item);
     cond->subconditions = malloc(cond->size * sizeof(CC*));
     
+    cJSON *sub;
     for (int i=0; i<cond->size; i++) {
-        cond->subconditions[i] = conditionFromJSON(cJSON_GetArrayItem(subfulfillments_item, i), err);
+        sub = cJSON_GetArrayItem(subfulfillments_item, i);
+        cond->subconditions[i] = cc_conditionFromJSON(sub, err);
         if (err[0] != '\0') break;
     }
-    cJSON_free(threshold_item);
-    cJSON_free(subfulfillments_item);
+
     if (err[0] != '\0') return NULL;
     return cond;
 }
 
 
-struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerify, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdFfillToCC };
+static void thresholdFree(CC *cond) {
+    for (int i=0; i<cond->size; i++) {
+        cc_free(cond->subconditions[i]);
+    }
+    free(cond->subconditions);
+    free(cond);
+}
+
+
+struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerifyMessage, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdFfillToCC, &thresholdFree };

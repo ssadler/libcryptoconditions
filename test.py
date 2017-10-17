@@ -26,13 +26,6 @@ def b16_to_b64(b16):
     return base64.urlsafe_b64encode(base64.b16decode(b16)).rstrip('=')
 
 
-def test_anon():
-    vectors = _read_vectors('0002_test-minimal-threshold')
-    response = jsonRPC('decodeCondition', {
-        'bin': b16_to_b64(vectors['conditionBinary']),
-    })
-
-
 v0000 = '0000_test-minimal-preimage'
 v0001 = '0001_test-minimal-prefix'
 v0002 = '0002_test-minimal-threshold'
@@ -84,6 +77,15 @@ def test_decode_fulfillment(vectors_file):
         'uri': vectors['conditionUri'],
         'bin': b16_to_b64(vectors['conditionBinary']),
     }
+
+
+@pytest.mark.parametrize('vectors_file', all_vectors)
+def test_decode_condition(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    response = jsonRPC('decodeCondition', {
+        'bin': b16_to_b64(vectors['conditionBinary']),
+    })
+    assert response['uri'] == vectors['conditionUri']
 
 
 def decode_base64(data):

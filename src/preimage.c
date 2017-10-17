@@ -21,7 +21,7 @@ static CC *preimageFromJSON(cJSON *params, char *err) {
 }
 
 
-static int preimageVerify(CC *cond, char *msg, size_t length) {
+static int preimageVerifyMessage(CC *cond, char *msg, size_t length) {
     return 1; // no message to verify
 }
 
@@ -47,4 +47,10 @@ static void preimageFfillToCC(Fulfillment_t *ffill, CC *cond) {
 }
 
 
-struct CCType cc_preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageVerify, &preimageFingerprint, &preimageCost, NULL, &preimageFromJSON, &preimageFfillToCC };
+static void preimageFree(CC *cond) {
+    free(cond->preimage);
+    free(cond);
+}
+
+
+struct CCType cc_preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageVerifyMessage, &preimageFingerprint, &preimageCost, NULL, &preimageFromJSON, &preimageFfillToCC, &preimageFree };

@@ -21,12 +21,13 @@ typedef struct CCType {
     char name[100];
     Condition_PR asnType;
     int hasSubtypes;
-    int (*verify)(struct CC *cond, char *msg, size_t msgLength);
+    int (*verifyMessage)(struct CC *cond, char *msg, size_t msgLength);
     char *(*fingerprint)(struct CC *cond);
     unsigned long (*getCost)(struct CC *cond);
     uint32_t (*getSubtypes)(struct CC *cond);
     struct CC *(*fromJSON)(cJSON *params, char *err);
     void (*ffillToCC)(Fulfillment_t *ffill, struct CC *cond);
+    void (*free)(struct CC *cond);
 } CCType;
 
 
@@ -53,20 +54,23 @@ struct CCType cc_thresholdType;
  * Common API
  */
 int cc_readFulfillment(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
-void cc_freeCondition(CC *cond);
-void cc_ffillToCC(Fulfillment_t *ffill, CC *cond);
+int cc_verify(struct CC *cond, char *msg, size_t length, char *uri);
+int cc_verifyMessage(struct CC *cond, char *msg, size_t length);
+void cc_free(CC *cond);
 CCType *getTypeByAsnEnum(Condition_PR present);
-static uint32_t fromAsnSubtypes(ConditionTypes_t types);
+int cc_verifyMessage(CC *cond, char *msg, size_t length);
+CC *cc_conditionFromJSON(cJSON *params, char *err);
+
 
 /*
  * Internal API
  */
-
+static uint32_t fromAsnSubtypes(ConditionTypes_t types);
 static void mkAnon(Condition_t *asnCond, CC *cond);
 static Condition_t *asnCondition(CC *cond);
 static uint32_t getSubtypes(CC *cond);
-static CC *conditionFromJSON(cJSON *params, char *err);
-
+static cJSON *jsonMakeCondition(cJSON *params, char *err);
+static void ffillToCC(Fulfillment_t *ffill, CC *cond);
 
 
 #ifdef __cplusplus

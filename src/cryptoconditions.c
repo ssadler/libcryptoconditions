@@ -14,10 +14,8 @@
 #include "src/prefix.c"
 #include "src/preimage.c"
 #include "src/anon.c"
+#include <malloc.h>
 #include <sodium.h>
-
-
-#define streq(a, b) strcmp(a, b) == 0
 
 
 static struct CCType *typeRegistry[] = { &cc_preimageType, &cc_prefixType, &cc_thresholdType, NULL, &cc_ed25519Type };
@@ -39,6 +37,7 @@ static void appendUriSubtypes(uint32_t mask, char *buf) {
         }
     }
 }
+
 
 char *cc_conditionUri(CC *cond) {
     char *fp = cond->type->fingerprint(cond);
@@ -74,9 +73,6 @@ static char *fingerprintTypes(int mask) {
 }
 
 
-/*
- * Subtype Mask
- */
 static uint32_t getSubtypes(CC *cond) {
     uint32_t mask = 1 << cond->type->typeId;
     if (cond->type->hasSubtypes) {
@@ -161,9 +157,6 @@ static Condition_t *asnCondition(CC *cond) {
 }
 
 
-CC *conditionFromJSON(cJSON *params, char *err);
-
-
 CCType *getTypeByAsnEnum(Condition_PR present) {
     for (int i=0; i<typeRegistryLength; i++) {
         if (typeRegistry[i] != NULL && typeRegistry[i]->asnType == present) {
@@ -174,20 +167,32 @@ CCType *getTypeByAsnEnum(Condition_PR present) {
 }
 
 
-CC *conditionFromJSON(cJSON *params, char *err) {
+int jsonGet(cJSON *object, char *name, char *target) {
+    cJSON *item = cJSON_GetObjectItem(object, name);
+    if (!cJSON_IsString(item)) {
+        return 1;
+    } else if (strlen(item->valuestring) > malloc_usable_size(target)) {
+        return 2;
+    }
+    strcpy(target, item->valuestring);
+    return 0;
+}
+
+
+CC *cc_conditionFromJSON(cJSON *params, char *err) {
     CC *cond;
     if (!cJSON_IsObject(params)) {
-        strcpy(err, "condition params must be an object");
+        strcpy(err, "Condition params must be an object");
         return NULL;
     }
-    cJSON *type_item = cJSON_GetObjectItem(params, "type");
-    if (!cJSON_IsString(type_item)) {
-        strcpy(err, "\"type\" must be a string");
+    char typeName[100];
+    if (0 != jsonGet(params, "type", typeName)) {
+        strcpy(err, "\"type\" not valid");
         return NULL;
     }
     for (int i=0; i<typeRegistryLength; i++) {
         if (typeRegistry[i] != NULL) {
-            if (streq(type_item->valuestring, typeRegistry[i]->name)) {
+            if (0 == strcmp(typeName, typeRegistry[i]->name)) {
                 return typeRegistry[i]->fromJSON(params, err);
             }
         }
@@ -197,7 +202,18 @@ CC *conditionFromJSON(cJSON *params, char *err) {
 }
 
 
-void ffillToCC(Fulfillment_t *ffill, CC *cond) {
+static cJSON *jsonMakeCondition(cJSON *params, char *err) {
+    CC *cond = cc_conditionFromJSON(params, err);
+    cJSON *out = NULL;
+    if (cond != NULL) {
+        out = jsonCondition(cond);
+        cc_free(cond);
+    }
+    return out;
+}
+
+
+static void ffillToCC(Fulfillment_t *ffill, CC *cond) {
     CCType *type = getTypeByAsnEnum(ffill->present);
     if (NULL == type) {
         fprintf(stderr, "Unknown fulfillment type\n");
@@ -220,8 +236,16 @@ int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_
 }
 
 
-int cc_verifyFulfillment(CC *cond, char *msg, size_t length) {
-    return cond->type->verify(cond, msg, length);
+int cc_verifyMessage(CC *cond, char *msg, size_t length) {
+    return cond->type->verifyMessage(cond, msg, length);
+}
+
+
+int cc_verify(CC *cond, char *msg, size_t length, char *uri) {
+    char *targetUri = cc_conditionUri(cond);
+    int pass = cc_verifyMessage(cond, msg, length) && 0 == strcmp(uri, targetUri);
+    free(targetUri);
+    return pass;
 }
 
 
@@ -245,43 +269,57 @@ static cJSON *jsonErr(char *err) {
 }
 
 
-static cJSON *jsonVerifyFulfillment(cJSON *params) {
+static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
+    cJSON *out = NULL;
+    CC *cond = malloc(sizeof(CC));
+
     cJSON *uri_item = cJSON_GetObjectItem(params, "uri");
-    if (!cJSON_IsString(uri_item)) {
-        return jsonErr("uri must be a string");
-    }
-
     cJSON *msg_item = cJSON_GetObjectItem(params, "message");
-    if (!cJSON_IsString(msg_item)) {
-        return jsonErr("message must be a string");
+    cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
+
+    if (!cJSON_IsString(uri_item)) {
+        strcpy(err, "uri must be a string");
+        goto END;
     }
 
-    cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
+    if (!cJSON_IsString(msg_item)) {
+        strcpy(err, "message must be a string");
+        goto END;
+    }
+
     if (!cJSON_IsString(ffill_b64_item)) {
-        return jsonErr("fulfillment must be a string");
+        strcpy(err, "fulfillment must be a string");
+        goto END;
     }
 
     size_t ffill_bin_len;
     char *ffill_bin = base64_decode(ffill_b64_item->valuestring,
             strlen(ffill_b64_item->valuestring), &ffill_bin_len);
 
-    CC *cond = malloc(sizeof(CC));
 
     int rc = cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len);
-    if (rc != 0) return jsonErr("Invalid fulfillment payload");
+    if (rc != 0) {
+        strcpy(err, "Invalid fulfillment payload");
+        goto END;
+    }
 
-    int valid = cc_verifyFulfillment(cond, msg_item->valuestring, strlen(msg_item->valuestring)); // TODO: b64 decode
+    int valid = cc_verify(cond, msg_item->valuestring, strlen(msg_item->valuestring), uri_item->valuestring); // TODO: b64 decode
     
-    cJSON *out = cJSON_CreateObject();
+    cc_free(cond);
+
+    out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));
+
+END:
     return out;
 }
 
 
-static cJSON *decodeFulfillment(cJSON *params) {
+static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
     cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
     if (!cJSON_IsString(ffill_b64_item)) {
-        return jsonErr("fulfillment must be a string");
+        strcpy(err, "fulfillment must be a string");
+        return NULL;
     }
 
     size_t ffill_bin_len;
@@ -289,93 +327,88 @@ static cJSON *decodeFulfillment(cJSON *params) {
             strlen(ffill_b64_item->valuestring), &ffill_bin_len);
 
     CC *cond = malloc(sizeof(CC));
-    int rc = cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len);
-    if (rc != 0) return jsonErr("Invalid fulfillment payload");
+    if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
+        strcpy(err, "Invalid fulfillment payload");
+        return NULL;
+    }
 
     return jsonCondition(cond);
 }
 
 
-static cJSON *decodeCondition(cJSON *params) {
+static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
     cJSON *conditionB64_item = cJSON_GetObjectItem(params, "bin");
     if (!cJSON_IsString(conditionB64_item)) {
-        return jsonErr("bin must be condition binary base64");
+        strcpy(err, "bin must be condition binary base64");
+        return NULL;
     }
 
     size_t cond_bin_len;
     char *condition_bin = base64_decode(conditionB64_item->valuestring,
                                         strlen(conditionB64_item->valuestring), &cond_bin_len);
-    CC *cond = malloc(sizeof(CC));
-    int rc = cc_readConditionBinary(cond, condition_bin, cond_bin_len);
-    if (rc != 0) return jsonErr("Invalid condition payload");
+    CC cond;
+    int rc = cc_readConditionBinary(&cond, condition_bin, cond_bin_len);
 
-    return jsonCondition(cond);
+    if (rc != 0) {
+        strcpy(err, "Invalid condition payload");
+        return NULL;
+    }
+
+    return jsonCondition(&cond);
 }
 
 
 void cc_free(CC *cond) {
-    //TODO
-    free(cond);
+    cond->type->free(cond);
+}
+
+
+char *cc_jsonMethodNames[] = {
+    "makeCondition",
+    "decodeCondition",
+    "decodeFulfillment",
+    "verifyFulfillment"
+};
+
+
+cJSON *(*cc_jsonMethodImplementations[])(cJSON *params, char *err) = {
+    &jsonMakeCondition,
+    &jsonDecodeCondition,
+    &jsonDecodeFulfillment,
+    &jsonVerifyFulfillment
+};
+
+
+static cJSON* execJsonRPC(cJSON *root, char *err) {
+    cJSON *method_item = cJSON_GetObjectItem(root, "method");
+
+    if (!cJSON_IsString(method_item)) {
+        return jsonErr("malformed method");
+    }
+
+    cJSON *params = cJSON_GetObjectItem(root, "params");
+    if (!cJSON_IsObject(params)) {
+        return jsonErr("params is not an object");
+    }
+
+    for (int i=0; i<4; i++) {
+        if (0 == strcmp(cc_jsonMethodNames[i], method_item->valuestring)) {
+            return cc_jsonMethodImplementations[i](params, err);
+        }
+    }
+
+    return jsonErr("invalid method");
 }
 
 
 char *jsonRPC(char* input) {
-
-    ConditionTypes_t typ = asnSubtypes(1<<1 | 1<<4);
-    char ou[100];
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_ConditionTypes, &typ, ou, 100);
-
-    // TODO: Return proper errors
-    // cJSON free structures? (everywhere)
     cJSON *root = cJSON_Parse(input);
-    cJSON *method_item = cJSON_GetObjectItem(root, "method");
-    if (!cJSON_IsString(method_item)) {
-        return "malformed method";
-    }
-    char *method = method_item->valuestring;
-    cJSON *params = cJSON_GetObjectItem(root, "params");
-    if (!cJSON_IsObject(params)) {
-        return "params is not an object";
-    }
-
-    cJSON *out;
-    CC *cond;
-    char *err = malloc(1000);
-    err[0] = '\0';
-
-    if (streq(method, "makeCondition")) {
-        cond = conditionFromJSON(params, err);
-        if (cond == NULL) {
-            out = jsonErr(err);
-        } else {
-            out = jsonCondition(cond);
-            cc_free(cond);
-        }
-    }
-
-    else if (streq(method, "decodeFulfillment")) {
-        out = decodeFulfillment(params);
-    }
-
-    else if (streq(method, "verifyFulfillment")) {
-        out = jsonVerifyFulfillment(params);
-    }
-
-    else if (streq(method, "decodeCondition")) {
-        out = decodeCondition(params);
-    }
-
-    else {
-        out = jsonErr("invalid method");
-    }    
-    
-    char *res = cJSON_Print(out);
+    char err[1000] = "\0";
+    cJSON *out = execJsonRPC(root, err);
+    char *res;
+    if (NULL == out) out = jsonErr(err);
+    res = cJSON_Print(out);
     cJSON_Delete(out);
+    cJSON_Delete(root);
     return res;
 }
-
-
-
-
-
-

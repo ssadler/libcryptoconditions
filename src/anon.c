@@ -24,7 +24,7 @@ static void mkAnon(Condition_t *asnCond, CC *cond) {
 }
 
 
-static int anonVerify(CC *cond, char *msg) {
+static int anonVerify(CC *cond, char *msg, size_t length) {
     return 0;
 }
 
@@ -46,4 +46,9 @@ static uint32_t anonSubtypes(CC *cond) {
 }
 
 
-struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL };
+static void anonFree(CC *cond) {
+    free(cond);
+}
+
+
+struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL, &anonFree };

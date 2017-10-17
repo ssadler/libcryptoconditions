@@ -7,12 +7,12 @@
 #include "cryptoconditions.h"
 
 
-static int prefixVerify(CC *cond, char *msg, size_t msgLength) {
+static int prefixVerifyMessage(CC *cond, char *msg, size_t msgLength) {
     size_t prefixedLength = cond->prefixLength + msgLength;
     char *prefixed = malloc(prefixedLength);
     memcpy(prefixed, cond->prefix, cond->prefixLength);
     memcpy(prefixed + cond->prefixLength, msg, msgLength);
-    int res = cc_verifyFulfillment(cond->subcondition, prefixed, prefixedLength);
+    int res = cc_verifyMessage(cond->subcondition, prefixed, prefixedLength);
     free(prefixed);
     return res;
 }
@@ -85,7 +85,7 @@ static CC *prefixFromJSON(cJSON *params, char *err) {
     CC *cond = malloc(sizeof(CC));
     cond->type = &cc_prefixType;
     cond->maxMessageLength = (unsigned long) mml_item->valuedouble;
-    CC *sub = conditionFromJSON(subcond_item, err);
+    CC *sub = cc_conditionFromJSON(subcond_item, err);
     if (NULL == sub) {
         return NULL;
     }
@@ -93,11 +93,15 @@ static CC *prefixFromJSON(cJSON *params, char *err) {
 
     cond->prefix = base64_decode(prefix_item->valuestring, // TODO: verify
             strlen(prefix_item->valuestring), &cond->prefixLength);
-    cJSON_free(mml_item);
-    cJSON_free(prefix_item);
-    cJSON_free(subcond_item);
     return cond;
 }
 
 
-struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerify, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixFfillToCC };
+static void prefixFree(CC *cond) {
+    free(cond->prefix);
+    cc_free(cond->subcondition);
+    free(cond);
+}
+
+
+struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerifyMessage, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixFfillToCC, &prefixFree };
