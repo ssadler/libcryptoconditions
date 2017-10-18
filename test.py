@@ -29,10 +29,26 @@ def b16_to_b64(b16):
 v0000 = '0000_test-minimal-preimage'
 v0001 = '0001_test-minimal-prefix'
 v0002 = '0002_test-minimal-threshold'
+v0003 = '0003_test-minimal-rsa'
 v0004 = '0004_test-minimal-ed25519'
+v0005 = '0005_test-basic-preimage'
+v0006 = '0006_test-basic-prefix'
+v0007 = '0007_test-basic-prefix-two-levels-deep'
+v0010 = '0010_test-basic-threshold-same-fulfillment-twice'
+v0015 = '0015_test-basic-ed25519'
+v0016 = '0016_test-advanced-notarized-receipt'
 v0017 = '0017_test-advanced-notarized-receipt-multiple-notaries'
+# These contain RSA conditions which are not implemented yet
+#v0008 = '0008_test-basic-threshold'
+#v0009 = '0009_test-basic-threshold-same-condition-twice'
+#v0011 = '0011_test-basic-threshold-two-levels-deep'
+#v0012 = '0012_test-basic-threshold-schroedinger'
+#v0013 = '0013_test-basic-rsa'
+#v0014 = '0014_test-basic-rsa4096'
 
-all_vectors = {v0000, v0001, v0002, v0004, v0017}
+
+all_vectors = {v0000, v0001, v0002, v0004, v0005, v0006, v0007, v0010,
+               v0015, v0016, v0017}
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
@@ -49,29 +65,18 @@ def test_condition(vectors_file):
 def test_verify_passes(vectors_file):
     vectors = _read_vectors(vectors_file)
     req = {
-        'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
-        'message': '',
+        'fulfillment': b16_to_b64(vectors['fulfillment']),
+        'message': b16_to_b64(vectors['message']),
         'uri': vectors['conditionUri'],
     }
     assert jsonRPC('verifyFulfillment', req) == {'valid': True}
-
-
-@pytest.mark.parametrize('vectors_file', [v0004, v0017])
-def test_verify_fails(vectors_file):
-    vectors = _read_vectors(vectors_file)
-    req = {
-        'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
-        'message': 'bla',
-        'uri': vectors['conditionUri'],
-    }
-    assert jsonRPC('verifyFulfillment', req) == {'valid': False}
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
 def test_decode_fulfillment(vectors_file):
     vectors = _read_vectors(vectors_file)
     response = jsonRPC('decodeFulfillment', {
-        'fulfillment': base64.b64encode(base64.b16decode(vectors['fulfillment'])),
+        'fulfillment': b16_to_b64(vectors['fulfillment']),
     })
     assert response == {
         'uri': vectors['conditionUri'],

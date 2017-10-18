@@ -270,47 +270,45 @@ static cJSON *jsonErr(char *err) {
 
 
 static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
-    cJSON *out = NULL;
-    CC *cond = malloc(sizeof(CC));
-
     cJSON *uri_item = cJSON_GetObjectItem(params, "uri");
-    cJSON *msg_item = cJSON_GetObjectItem(params, "message");
+    cJSON *msg_b64_item = cJSON_GetObjectItem(params, "message");
     cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
 
     if (!cJSON_IsString(uri_item)) {
         strcpy(err, "uri must be a string");
-        goto END;
+        return NULL;
     }
 
-    if (!cJSON_IsString(msg_item)) {
+    if (!cJSON_IsString(msg_b64_item)) {
         strcpy(err, "message must be a string");
-        goto END;
+        return NULL;
     }
 
     if (!cJSON_IsString(ffill_b64_item)) {
         strcpy(err, "fulfillment must be a string");
-        goto END;
+        return NULL;
     }
 
     size_t ffill_bin_len;
     char *ffill_bin = base64_decode(ffill_b64_item->valuestring,
             strlen(ffill_b64_item->valuestring), &ffill_bin_len);
 
+    size_t msg_len;
+    char *msg = base64_decode(msg_b64_item->valuestring,
+            strlen(msg_b64_item->valuestring), &msg_len);
 
-    int rc = cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len);
-    if (rc != 0) {
+    CC *cond = malloc(sizeof(CC));
+    
+    if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
         strcpy(err, "Invalid fulfillment payload");
-        goto END;
+        // TODO: free cond
+        return NULL;
     }
 
-    int valid = cc_verify(cond, msg_item->valuestring, strlen(msg_item->valuestring), uri_item->valuestring); // TODO: b64 decode
-    
+    int valid = cc_verify(cond, msg, msg_len, uri_item->valuestring);
     cc_free(cond);
-
-    out = cJSON_CreateObject();
+    cJSON *out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));
-
-END:
     return out;
 }
 
