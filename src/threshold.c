@@ -25,7 +25,7 @@ static int cmpCost(const void *a, const void *b) {
 
 static unsigned long thresholdCost(CC *cond) {
     CC *sub;
-    unsigned long *costs = malloc(cond->size * sizeof(unsigned long));
+    unsigned long *costs = calloc(1, cond->size * sizeof(unsigned long));
     for (int i=0; i<cond->size; i++) {
         sub = cond->subconditions[i];
         costs[i] = sub->type->getCost(sub);
@@ -62,55 +62,57 @@ static int cmpConditions(const void *a, const void *b) {
 //SAFE
 
 
+void freeThingy(Condition_t *asn) {
+    fprintf(stderr, "so free...\n");
+}
+
 static char *thresholdFingerprint(CC *cond) {
-    Condition_t **subAsns = malloc(cond->size * sizeof(Condition_t*));
+    Condition_t **subAsns = calloc(1, cond->size * sizeof(Condition_t*));
 
     /* Convert each CC into an ASN condition */
     Condition_t *asnCond;
     for (int i=0; i<cond->size; i++) {
-        subAsns[i] = asnCondition(cond->subconditions[i]);
+        subAsns[i] = calloc(1, sizeof(Condition_t));
+        asnCondition(cond->subconditions[i], subAsns[i]);
     }
 
     /* Sort conditions */
     qsort(subAsns, cond->size, sizeof(Condition_t*), cmpConditions);
 
     /* Create fingerprint */
-    ThresholdFingerprintContents_t fp;
-    fp.subconditions2.list.array = NULL;
-    fp.subconditions2.list.free = 0;
-    asn_set_empty(&fp.subconditions2.list);
-    fp.threshold = cond->threshold;
+    ThresholdFingerprintContents_t *fp = calloc(1, sizeof(ThresholdFingerprintContents_t));
+    fp->threshold = cond->threshold;
     for (int i=0; i<cond->size; i++) {
-        // TODO: Is there a bug here where the set is uninitialized?
-        asn_set_add(&fp.subconditions2, subAsns[i]);
+        asn_set_add(&fp->subconditions2, subAsns[i]);
     }
+    fp->subconditions2.list.free = &freeThingy; // TODO: why no work? Free conditions
+    free(subAsns);
 
     /* Encode and hash the result */
     char buf[BUF_SIZE];
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_ThresholdFingerprintContents, &fp, buf, BUF_SIZE);
+    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_ThresholdFingerprintContents, fp, buf, BUF_SIZE);
+    ASN_STRUCT_FREE(asn_DEF_ThresholdFingerprintContents, fp);
+    
     assert(rc.encoded > 0);
-
-    char *hash = malloc(32);
+    char *hash = calloc(1, 32);
     crypto_hash_sha256(hash, buf, rc.encoded);
 
-    //asn_DEF_OCTET_STRING.free_struct(&asn_DEF_OCTET_STRING, &(fp.publicKey), 0);
-    free(subAsns);
     return hash;
 }
 
 
-static void thresholdFfillToCC(Fulfillment_t *ffill, CC *cond) {
+static void thresholdFulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
     cond->type = &cc_thresholdType;
     ThresholdFulfillment_t *t = ffill->choice.thresholdSha256;
     cond->threshold = t->subfulfillments.list.count;
     cond->size = cond->threshold + t->subconditions.list.count;
-    cond->subconditions = malloc(cond->size * sizeof(CC*));
+    cond->subconditions = calloc(1, cond->size * sizeof(CC*));
     for (int i=0; i<cond->threshold; i++) {
-        cond->subconditions[i] = malloc(sizeof(CC));
-        ffillToCC(t->subfulfillments.list.array[i], cond->subconditions[i]);
+        cond->subconditions[i] = calloc(1, sizeof(CC));
+        fulfillmentToCC(t->subfulfillments.list.array[i], cond->subconditions[i]);
     }
     for (int i=0; i<t->subconditions.list.count; i++) {
-        cond->subconditions[i+cond->threshold] = malloc(sizeof(CC));
+        cond->subconditions[i+cond->threshold] = calloc(1, sizeof(CC));
         mkAnon(t->subconditions.list.array[i], cond->subconditions[i+cond->threshold]);
     }
 }
@@ -129,11 +131,11 @@ static CC *thresholdFromJSON(cJSON *params, char *err) {
         return NULL;
     }
 
-    CC *cond = malloc(sizeof(CC));
+    CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_thresholdType;
     cond->threshold = (long) threshold_item->valuedouble;
     cond->size = cJSON_GetArraySize(subfulfillments_item);
-    cond->subconditions = malloc(cond->size * sizeof(CC*));
+    cond->subconditions = calloc(1, cond->size * sizeof(CC*));
     
     cJSON *sub;
     for (int i=0; i<cond->size; i++) {
@@ -156,4 +158,4 @@ static void thresholdFree(CC *cond) {
 }
 
 
-struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerifyMessage, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdFfillToCC, &thresholdFree };
+struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerifyMessage, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdFulfillmentToCC, &thresholdFree };

@@ -8,17 +8,17 @@
 
 
 static void mkAnon(Condition_t *asnCond, CC *cond) {
-    CCType realType =* getTypeByAsnEnum(asnCond->present);
-    cond->type = (CCType*) malloc(sizeof(CCType));
+    CCType *realType = getTypeByAsnEnum(asnCond->present);
+    cond->type = (CCType*) calloc(1, sizeof(CCType));
     *cond->type = cc_anonType;
-    strcpy(cond->type->name, realType.name);
-    cond->type->hasSubtypes = realType.hasSubtypes;
-    cond->type->typeId = realType.typeId;
-    cond->type->asnType = realType.asnType;
+    strcpy(cond->type->name, realType->name);
+    cond->type->hasSubtypes = realType->hasSubtypes;
+    cond->type->typeId = realType->typeId;
+    cond->type->asnType = realType->asnType;
     SimpleSha256Condition_t *deets =& asnCond->choice.preimageSha256;
     memcpy(cond->fingerprint, deets->fingerprint.buf, 32);
     cond->cost = deets->cost;
-    if (realType.hasSubtypes) {
+    if (realType->hasSubtypes) {
         cond->subtypes = fromAsnSubtypes(((CompoundSha256Condition_t*) deets)->subtypes);
     }
 }
@@ -30,7 +30,7 @@ static int anonVerify(CC *cond, char *msg, size_t length) {
 
 
 static char *anonFingerprint(CC *cond) {
-    char *out = malloc(32);
+    char *out = calloc(1, 32);
     memcpy(out, cond->fingerprint, 32);
     return out;
 }
@@ -47,6 +47,7 @@ static uint32_t anonSubtypes(CC *cond) {
 
 
 static void anonFree(CC *cond) {
+    free(cond->type);
     free(cond);
 }
 

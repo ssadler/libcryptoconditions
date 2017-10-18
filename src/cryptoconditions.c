@@ -1,9 +1,6 @@
 
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
-#include "asn/Ed25519FingerprintContents.h"
-#include "asn/PrefixFingerprintContents.h"
-#include "asn/ThresholdFingerprintContents.h"
 #include "asn/OCTET_STRING.h"
 #include "include/cJSON.h"
 #include "cryptoconditions.h"
@@ -18,7 +15,14 @@
 #include <sodium.h>
 
 
-static struct CCType *typeRegistry[] = { &cc_preimageType, &cc_prefixType, &cc_thresholdType, NULL, &cc_ed25519Type };
+static struct CCType *typeRegistry[] = {
+    &cc_preimageType,
+    &cc_prefixType,
+    &cc_thresholdType,
+    NULL, /* &cc_rsaType */
+    &cc_ed25519Type
+};
+
 static int typeRegistryLength = 5;
 
 
@@ -44,7 +48,7 @@ char *cc_conditionUri(CC *cond) {
     char *encoded = base64_encode(fp, 32);
     int cost = cond->type->getCost(cond);
 
-    char *out = malloc(1000);
+    char *out = calloc(1, 1000);
     sprintf(out, "ni:///sha-256;%s?fpt=%s&cost=%i", encoded, cond->type->name, cost);
     
     if (cond->type->hasSubtypes) {
@@ -57,10 +61,11 @@ char *cc_conditionUri(CC *cond) {
     return out;
 }
 
+
 static char *fingerprintTypes(int mask) {
-    char *out = malloc(1000);
+    char *out = calloc(1, 1000);
     int append = 0;
-    for (int i=0; i<5; i++) {
+    for (int i=0; i<typeRegistryLength; i++) {
         if (mask & 1 << i) {
             if (append) {
                 strcat(out, ",");
@@ -95,14 +100,14 @@ static ConditionTypes_t asnSubtypes(uint32_t mask) {
     }
     
     types.size = 1 + (maxId >> 3);
-    types.buf = malloc(types.size);
+    types.buf = calloc(1, types.size);
     memcpy(types.buf, &buf, types.size);
     types.bits_unused = 7 - maxId % 8;
     return types;
 }
 
 
-static uint32_t fromAsnSubtypes(ConditionTypes_t types) {
+static uint32_t fromAsnSubtypes(const ConditionTypes_t types) {
     uint32_t mask = 0;
     for (int i=0; i<types.size*8; i++) {
         if (types.buf[i >> 3] & (1 << (7 - i % 8))) {
@@ -114,17 +119,22 @@ static uint32_t fromAsnSubtypes(ConditionTypes_t types) {
 
 
 static cJSON *jsonCondition(CC *cond) {
-    Condition_t *asn = asnCondition(cond);
+    Condition_t *asn = calloc(1, sizeof(Condition_t));
+    asnCondition(cond, asn);
     char buf[1000]; // todo: overflows?
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
+    ASN_STRUCT_FREE(asn_DEF_Condition, asn);
+
     if (rc.encoded == -1) {
-        // TODO: assert
+        // TODO: crash
+        return NULL;
     }
 
     cJSON *root = cJSON_CreateObject();
     char *uri = cc_conditionUri(cond);
     cJSON_AddItemToObject(root, "uri", cJSON_CreateString(uri));
     free(uri);
+
     char *b64 = base64_encode(buf, rc.encoded);
     cJSON_AddItemToObject(root, "bin", cJSON_CreateString(b64));
     free(b64);
@@ -133,26 +143,18 @@ static cJSON *jsonCondition(CC *cond) {
 }
 
 
-static Condition_t *asnCondition(CC *cond) {
-    Condition_t *asn = malloc(sizeof(Condition_t));
-    SimpleSha256Condition_t simple;
-    CompoundSha256Condition_t compound;
-    
+static void asnCondition(CC *cond, Condition_t *asn) {
     asn->present = cond->type->asnType;
-    simple.cost = cond->type->getCost(cond);
-    char *fp = cond->type->fingerprint(cond);
-    //OCTET_STRING_fromBuf(&simple.fingerprint, fp, 32);
-    simple.fingerprint =* OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, fp, 32);
-    free(fp);
-    // We don't know which of the union members to assign to here, so just
-    // assign to any that has the correct size
-    asn->choice.preimageSha256 = simple;
-    if (cond->type->hasSubtypes) {
-        compound.fingerprint = simple.fingerprint;
-        compound.cost = simple.cost;
-        compound.subtypes = asnSubtypes(cond->type->getSubtypes(cond));
-        asn->choice.thresholdSha256 = compound;
-    }
+    
+    // This may look a little weird - we dont have a reference here to the correct
+    // union choice for the condition type, so we just assign everything to the threshold
+    // type. This works out nicely since the union choices have the same binary interface.
+    
+    CompoundSha256Condition_t *choice = &asn->choice.thresholdSha256;
+    choice->cost = cond->type->getCost(cond);
+    choice->fingerprint.buf = cond->type->fingerprint(cond);
+    choice->fingerprint.size = 32;
+    choice->subtypes = asnSubtypes(cond->type->getSubtypes(cond));
     return asn;
 }
 
@@ -180,7 +182,6 @@ int jsonGet(cJSON *object, char *name, char *target) {
 
 
 CC *cc_conditionFromJSON(cJSON *params, char *err) {
-    CC *cond;
     if (!cJSON_IsObject(params)) {
         strcpy(err, "Condition params must be an object");
         return NULL;
@@ -213,13 +214,13 @@ static cJSON *jsonMakeCondition(cJSON *params, char *err) {
 }
 
 
-static void ffillToCC(Fulfillment_t *ffill, CC *cond) {
+static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
     CCType *type = getTypeByAsnEnum(ffill->present);
     if (NULL == type) {
         fprintf(stderr, "Unknown fulfillment type\n");
         // TODO: panic?
     }
-    type->ffillToCC(ffill, cond);
+    type->fulfillmentToCC(ffill, cond);
 }
 
 
@@ -228,9 +229,9 @@ int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_
     asn_dec_rval_t rval;
     rval = ber_decode(0, &asn_DEF_Fulfillment, (void **)&ffill, ffill_bin, ffill_bin_len);
     if (rval.code == RC_OK) {
-        ffillToCC(ffill, cond);
+        fulfillmentToCC(ffill, cond);
     }
-    asn_DEF_Fulfillment.free_struct(&asn_DEF_Fulfillment, ffill, 0);
+    ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
     if (rval.code == RC_OK) return 0;
     return 1;
 }
@@ -249,14 +250,15 @@ int cc_verify(CC *cond, char *msg, size_t length, char *uri) {
 }
 
 
-int cc_readConditionBinary(struct CC *cond, char *cond_bin, size_t length) {
+int cc_readConditionBinary(struct CC **cond, char *cond_bin, size_t length) {
     Condition_t *asnCond = 0;
     asn_dec_rval_t rval;
     rval = ber_decode(0, &asn_DEF_Condition, (void **)&asnCond, cond_bin, length);
     if (rval.code == RC_OK) {
-        mkAnon(asnCond, cond);
+        *cond = calloc(1, sizeof(CC));
+        mkAnon(asnCond, *cond);
     }
-    asn_DEF_Fulfillment.free_struct(&asn_DEF_Condition, asnCond, 0);
+    ASN_STRUCT_FREE(asn_DEF_Condition, asnCond);
     if (rval.code == RC_OK) return 0;
     return 1;
 }
@@ -297,7 +299,7 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
     char *msg = base64_decode(msg_b64_item->valuestring,
             strlen(msg_b64_item->valuestring), &msg_len);
 
-    CC *cond = malloc(sizeof(CC));
+    CC *cond = calloc(1, sizeof(CC));
     
     if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
         strcpy(err, "Invalid fulfillment payload");
@@ -324,13 +326,15 @@ static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
     char *ffill_bin = base64_decode(ffill_b64_item->valuestring,
             strlen(ffill_b64_item->valuestring), &ffill_bin_len);
 
-    CC *cond = malloc(sizeof(CC));
+    CC *cond = calloc(1, sizeof(CC));
     if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
         strcpy(err, "Invalid fulfillment payload");
         return NULL;
     }
 
-    return jsonCondition(cond);
+    cJSON *out = jsonCondition(cond);
+    cc_free(cond);
+    return out;
 }
 
 
@@ -344,7 +348,7 @@ static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
     size_t cond_bin_len;
     char *condition_bin = base64_decode(conditionB64_item->valuestring,
                                         strlen(conditionB64_item->valuestring), &cond_bin_len);
-    CC cond;
+    CC *cond = 0;
     int rc = cc_readConditionBinary(&cond, condition_bin, cond_bin_len);
 
     if (rc != 0) {
@@ -352,7 +356,9 @@ static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
         return NULL;
     }
 
-    return jsonCondition(&cond);
+    cJSON *out = jsonCondition(cond);
+    cc_free(cond);
+    return out;
 }
 
 

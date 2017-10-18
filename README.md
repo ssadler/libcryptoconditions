@@ -1,8 +1,6 @@
-# Interledger Cryptoconditions in C
+# libcryptoconditions
 
-https://tools.ietf.org/html/draft-thomas-crypto-conditions-03
+Interledger Crypto-Conditions in C, targeting spec [draft-thomas-crypto-conditions-03](https://tools.ietf.org/html/draft-thomas-crypto-conditions-03).
 
+Features shared object and JSON API.
 
-http://lionet.info/asn1c/asn1c.cgi
-
-maybe build into into a single libcc.a file

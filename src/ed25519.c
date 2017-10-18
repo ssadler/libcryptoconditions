@@ -9,17 +9,20 @@
 
 static char *ed25519Fingerprint(CC *cond) {
     Ed25519FingerprintContents_t fp;
-    //OCTET_STRING_fromBuf(&fp.publicKey, cond->publicKey, 32);
-    fp.publicKey =* OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, cond->publicKey, 32);
+    
+    // Don't allocate memory for the buffer, the structure is on the stack so we'll borrow
+    // a reference
+    fp.publicKey.buf = cond->publicKey;
+    fp.publicKey.size = 32;
+    
     char out[BUF_SIZE];
 
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Ed25519FingerprintContents, &fp, out, BUF_SIZE);
     if (rc.encoded == -1) {
         return NULL; // TODO assert
     }
-    char *hash = malloc(32);
+    char *hash = calloc(1, 32);
     crypto_hash_sha256(hash, out, rc.encoded);
-    //asn_DEF_OCTET_STRING.free_struct(&asn_DEF_OCTET_STRING, &(fp.publicKey), 0);
     return hash;
 }
 
@@ -44,7 +47,7 @@ static CC *ed25519FromJSON(cJSON *params, char *err) {
     char *pk_b64 = pk_item->valuestring;
     size_t binsz;
 
-    CC *cond = malloc(sizeof(CC));
+    CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_ed25519Type;
     cond->publicKey = base64_decode(pk_b64, strlen(pk_b64), &binsz);
     cond->signature = NULL;
@@ -54,9 +57,9 @@ static CC *ed25519FromJSON(cJSON *params, char *err) {
 
 static void ed25519FfillToCC(Fulfillment_t *ffill, CC *cond) {
     cond->type = &cc_ed25519Type;
-    cond->publicKey = malloc(32);
+    cond->publicKey = calloc(1, 32);
     memcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf, 32);
-    cond->signature = malloc(64);
+    cond->signature = calloc(1, 64);
     memcpy(cond->signature, ffill->choice.ed25519Sha256.signature.buf, 64);
 }
 
@@ -65,4 +68,10 @@ static void ed25519Free(CC *cond) {
     free(cond);
 }
 
-struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519VerifyMessage, &ed25519Fingerprint, &ed25519Cost, NULL, &ed25519FromJSON, &ed25519FfillToCC, &ed25519Free };
+
+static uint32_t ed25519Subtypes(CC *cond) {
+    return 0;
+}
+
+
+struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519VerifyMessage, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519FfillToCC, &ed25519Free };

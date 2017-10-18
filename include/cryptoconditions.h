@@ -26,7 +26,7 @@ typedef struct CCType {
     unsigned long (*getCost)(struct CC *cond);
     uint32_t (*getSubtypes)(struct CC *cond);
     struct CC *(*fromJSON)(cJSON *params, char *err);
-    void (*ffillToCC)(Fulfillment_t *ffill, struct CC *cond);
+    void (*fulfillmentToCC)(Fulfillment_t *ffill, struct CC *cond);
     void (*free)(struct CC *cond);
 } CCType;
 
@@ -67,10 +67,20 @@ CC *cc_conditionFromJSON(cJSON *params, char *err);
  */
 static uint32_t fromAsnSubtypes(ConditionTypes_t types);
 static void mkAnon(Condition_t *asnCond, CC *cond);
-static Condition_t *asnCondition(CC *cond);
+static void asnCondition(CC *cond, Condition_t *asn);
 static uint32_t getSubtypes(CC *cond);
 static cJSON *jsonMakeCondition(cJSON *params, char *err);
-static void ffillToCC(Fulfillment_t *ffill, CC *cond);
+static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
+
+
+/*
+ * Return codes
+ */
+
+typedef enum CCResult {
+    CC_OK = 0,
+    CC_Error = 1
+};
 
 
 #ifdef __cplusplus

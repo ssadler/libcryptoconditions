@@ -9,7 +9,7 @@
 
 static int prefixVerifyMessage(CC *cond, char *msg, size_t msgLength) {
     size_t prefixedLength = cond->prefixLength + msgLength;
-    char *prefixed = malloc(prefixedLength);
+    char *prefixed = calloc(1, prefixedLength);
     memcpy(prefixed, cond->prefix, cond->prefixLength);
     memcpy(prefixed + cond->prefixLength, msg, msgLength);
     int res = cc_verifyMessage(cond->subcondition, prefixed, prefixedLength);
@@ -19,22 +19,22 @@ static int prefixVerifyMessage(CC *cond, char *msg, size_t msgLength) {
 
 
 static char *prefixFingerprint(CC *cond) {
-    PrefixFingerprintContents_t fp;
-    Condition_t *subCond = asnCondition(cond->subcondition);
-    fp.subcondition = *subCond;
-    free(subCond);
-    fp.maxMessageLength = cond->maxMessageLength;
-    //OCTET_STRING_fromBuf(&fp.prefix, cond->prefix, cond->prefixLength);
-    fp.prefix =* OCTET_STRING_new_fromBuf(&asn_DEF_OCTET_STRING, cond->prefix, cond->prefixLength);
+    PrefixFingerprintContents_t *fp = calloc(1, sizeof(PrefixFingerprintContents_t));
+    asnCondition(cond->subcondition, &fp->subcondition);
+    fp->maxMessageLength = cond->maxMessageLength;
+    fp->prefix.buf = calloc(1, cond->prefixLength);
+    memcpy(fp->prefix.buf, cond->prefix, cond->prefixLength);
+    fp->prefix.size = cond->prefixLength;
     /* Encode and hash the result */
-    char out[1000^2];
-    char *hash = malloc(32);
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_PrefixFingerprintContents, &fp, out, 1024^2);
+    char out[BUF_SIZE];
+    char *hash = calloc(1, 32);
+    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_PrefixFingerprintContents, fp, out, BUF_SIZE);
     if (rc.encoded == -1) {
-        //panic?
+        fprintf(stderr, "prefixFingerprint failed\n");
+        // TODO: log and quit
     }
+    ASN_STRUCT_FREE(asn_DEF_PrefixFingerprintContents, fp);
     crypto_hash_sha256(hash, out, rc.encoded);
-    //asn_DEF_OCTET_STRING.free_struct(&asn_DEF_OCTET_STRING, &(fp.publicKey), 0);
     return hash;
 }
 
@@ -45,15 +45,15 @@ static unsigned long prefixCost(CC *cond) {
 }
 
 
-static void prefixFfillToCC(Fulfillment_t *ffill, CC *cond) {
+static void prefixFulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
     cond->type = &cc_prefixType;
     PrefixFulfillment_t *p = ffill->choice.prefixSha256;
     cond->maxMessageLength = p->maxMessageLength;
-    cond->prefix = malloc(p->prefix.size);
+    cond->prefix = calloc(1, p->prefix.size);
     memcpy(cond->prefix, p->prefix.buf, p->prefix.size);
     cond->prefixLength = p->prefix.size;
-    cond->subcondition = malloc(sizeof(CC));
-    ffillToCC(p->subfulfillment, cond->subcondition);
+    cond->subcondition = calloc(1, sizeof(CC));
+    fulfillmentToCC(p->subfulfillment, cond->subcondition);
 }
 
 
@@ -82,7 +82,7 @@ static CC *prefixFromJSON(cJSON *params, char *err) {
         return NULL;
     }
 
-    CC *cond = malloc(sizeof(CC));
+    CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_prefixType;
     cond->maxMessageLength = (unsigned long) mml_item->valuedouble;
     CC *sub = cc_conditionFromJSON(subcond_item, err);
@@ -104,4 +104,4 @@ static void prefixFree(CC *cond) {
 }
 
 
-struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerifyMessage, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixFfillToCC, &prefixFree };
+struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerifyMessage, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixFulfillmentToCC, &prefixFree };
