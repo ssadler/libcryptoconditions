@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stddef.h>
+#include <Condition.h>
+#include <Fulfillment.h>
+#include <cJSON.h>
 
 
 #ifndef	CRYPTOCONDITIONS_H
@@ -53,13 +56,13 @@ struct CCType cc_thresholdType;
 /*
  * Common API
  */
-int cc_readFulfillment(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
+int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
 int cc_verify(struct CC *cond, char *msg, size_t length, char *uri);
 int cc_verifyMessage(struct CC *cond, char *msg, size_t length);
-void cc_free(CC *cond);
+void cc_free(struct CC *cond);
 CCType *getTypeByAsnEnum(Condition_PR present);
-int cc_verifyMessage(CC *cond, char *msg, size_t length);
-CC *cc_conditionFromJSON(cJSON *params, char *err);
+int cc_verifyMessage(struct CC *cond, char *msg, size_t length);
+struct CC *cc_conditionFromJSON(cJSON *params, char *err);
 
 
 /*
@@ -77,7 +80,7 @@ static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
  * Return codes
  */
 
-typedef enum CCResult {
+enum CCResult {
     CC_OK = 0,
     CC_Error = 1
 };

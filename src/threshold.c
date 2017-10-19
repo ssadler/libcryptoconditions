@@ -17,8 +17,7 @@ static uint32_t thresholdSubtypes(CC *cond) {
 }
 
 
-static int cmpCost(const void *a, const void *b) {
-    /* costs in descending order */
+static int cmpCostDesc(const void *a, const void *b) {
     return (int) ( *(unsigned long*)b - *(unsigned long*)a );
 }
 
@@ -30,7 +29,7 @@ static unsigned long thresholdCost(CC *cond) {
         sub = cond->subconditions[i];
         costs[i] = sub->type->getCost(sub);
     }
-    qsort(costs, cond->size, sizeof(unsigned long), cmpCost);
+    qsort(costs, cond->size, sizeof(unsigned long), cmpCostDesc);
     unsigned long cost = 0;
     for (int i=0; i<cond->threshold; i++) {
         cost += costs[i];
@@ -62,37 +61,27 @@ static int cmpConditions(const void *a, const void *b) {
 //SAFE
 
 
-void freeThingy(Condition_t *asn) {
-    fprintf(stderr, "so free...\n");
-}
-
 static char *thresholdFingerprint(CC *cond) {
-    Condition_t **subAsns = calloc(1, cond->size * sizeof(Condition_t*));
-
-    /* Convert each CC into an ASN condition */
-    Condition_t *asnCond;
-    for (int i=0; i<cond->size; i++) {
-        subAsns[i] = calloc(1, sizeof(Condition_t));
-        asnCondition(cond->subconditions[i], subAsns[i]);
-    }
-
-    /* Sort conditions */
-    qsort(subAsns, cond->size, sizeof(Condition_t*), cmpConditions);
 
     /* Create fingerprint */
     ThresholdFingerprintContents_t *fp = calloc(1, sizeof(ThresholdFingerprintContents_t));
     fp->threshold = cond->threshold;
     for (int i=0; i<cond->size; i++) {
-        asn_set_add(&fp->subconditions2, subAsns[i]);
+        asn_set_add(&fp->subconditions2, calloc(1, sizeof(Condition_t)));
+        asnCondition(cond->subconditions[i], fp->subconditions2.list.array[i]);
     }
-    fp->subconditions2.list.free = &freeThingy; // TODO: why no work? Free conditions
-    free(subAsns);
+
+    /* Sort conditions */
+    qsort(fp->subconditions2.list.array, cond->size, sizeof(Condition_t*), cmpConditions);
 
     /* Encode and hash the result */
     char buf[BUF_SIZE];
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_ThresholdFingerprintContents, fp, buf, BUF_SIZE);
+
+    /* Free everything */
     ASN_STRUCT_FREE(asn_DEF_ThresholdFingerprintContents, fp);
     
+    /* Encode the output */
     assert(rc.encoded > 0);
     char *hash = calloc(1, 32);
     crypto_hash_sha256(hash, buf, rc.encoded);
@@ -106,7 +95,7 @@ static void thresholdFulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
     ThresholdFulfillment_t *t = ffill->choice.thresholdSha256;
     cond->threshold = t->subfulfillments.list.count;
     cond->size = cond->threshold + t->subconditions.list.count;
-    cond->subconditions = calloc(1, cond->size * sizeof(CC*));
+    cond->subconditions = calloc(cond->size, sizeof(CC*));
     for (int i=0; i<cond->threshold; i++) {
         cond->subconditions[i] = calloc(1, sizeof(CC));
         fulfillmentToCC(t->subfulfillments.list.array[i], cond->subconditions[i]);

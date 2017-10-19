@@ -15,16 +15,17 @@ static void mkAnon(Condition_t *asnCond, CC *cond) {
     cond->type->hasSubtypes = realType->hasSubtypes;
     cond->type->typeId = realType->typeId;
     cond->type->asnType = realType->asnType;
-    SimpleSha256Condition_t *deets =& asnCond->choice.preimageSha256;
+    CompoundSha256Condition_t *deets =& asnCond->choice.thresholdSha256;
     memcpy(cond->fingerprint, deets->fingerprint.buf, 32);
     cond->cost = deets->cost;
     if (realType->hasSubtypes) {
-        cond->subtypes = fromAsnSubtypes(((CompoundSha256Condition_t*) deets)->subtypes);
+        cond->subtypes = fromAsnSubtypes(deets->subtypes);
     }
 }
 
 
 static int anonVerify(CC *cond, char *msg, size_t length) {
+    // TODO: log
     return 0;
 }
 

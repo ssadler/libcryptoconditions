@@ -42,4 +42,4 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/asn/per_encoder.c \
 	src/asn/per_opentype.c
 libcryptoconditions_la_LIBADD = -lsodium
-AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include
+AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include -I$(top_srcdir)/src/include

@@ -155,7 +155,6 @@ static void asnCondition(CC *cond, Condition_t *asn) {
     choice->fingerprint.buf = cond->type->fingerprint(cond);
     choice->fingerprint.size = 32;
     choice->subtypes = asnSubtypes(cond->type->getSubtypes(cond));
-    return asn;
 }
 
 
