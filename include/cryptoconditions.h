@@ -57,7 +57,7 @@ struct CCType cc_thresholdType;
  * Common API
  */
 int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
-int cc_verify(struct CC *cond, char *msg, size_t length, char *uri);
+int cc_verify(struct CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength);
 int cc_verifyMessage(struct CC *cond, char *msg, size_t length);
 void cc_free(struct CC *cond);
 CCType *getTypeByAsnEnum(Condition_PR present);

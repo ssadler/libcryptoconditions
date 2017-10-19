@@ -118,24 +118,29 @@ static uint32_t fromAsnSubtypes(const ConditionTypes_t types) {
 }
 
 
-static cJSON *jsonCondition(CC *cond) {
+size_t cc_conditionBinary(CC *cond, char *buf) {
     Condition_t *asn = calloc(1, sizeof(Condition_t));
     asnCondition(cond, asn);
-    char buf[1000]; // todo: overflows?
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
-    ASN_STRUCT_FREE(asn_DEF_Condition, asn);
-
     if (rc.encoded == -1) {
         // TODO: crash
         return NULL;
     }
+    ASN_STRUCT_FREE(asn_DEF_Condition, asn);
+    return rc.encoded;
+}
+
+
+static cJSON *jsonCondition(CC *cond) {
+    char buf[1000];
+    size_t conditionBinLength = cc_conditionBinary(cond, buf);
 
     cJSON *root = cJSON_CreateObject();
     char *uri = cc_conditionUri(cond);
     cJSON_AddItemToObject(root, "uri", cJSON_CreateString(uri));
     free(uri);
 
-    char *b64 = base64_encode(buf, rc.encoded);
+    char *b64 = base64_encode(buf, conditionBinLength);
     cJSON_AddItemToObject(root, "bin", cJSON_CreateString(b64));
     free(b64);
 
@@ -241,10 +246,10 @@ int cc_verifyMessage(CC *cond, char *msg, size_t length) {
 }
 
 
-int cc_verify(CC *cond, char *msg, size_t length, char *uri) {
-    char *targetUri = cc_conditionUri(cond);
-    int pass = cc_verifyMessage(cond, msg, length) && 0 == strcmp(uri, targetUri);
-    free(targetUri);
+int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength) {
+    char targetBinary[1000];
+    size_t binLength = cc_conditionBinary(cond, targetBinary);
+    int pass = cc_verifyMessage(cond, msg, msgLength) && 0 == memcmp(condBin, targetBinary, binLength);
     return pass;
 }
 
@@ -271,11 +276,11 @@ static cJSON *jsonErr(char *err) {
 
 
 static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
-    cJSON *uri_item = cJSON_GetObjectItem(params, "uri");
+    cJSON *cond_b64_item = cJSON_GetObjectItem(params, "condition");
     cJSON *msg_b64_item = cJSON_GetObjectItem(params, "message");
     cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
 
-    if (!cJSON_IsString(uri_item)) {
+    if (!cJSON_IsString(cond_b64_item)) {
         strcpy(err, "uri must be a string");
         return NULL;
     }
@@ -298,6 +303,10 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
     char *msg = base64_decode(msg_b64_item->valuestring,
             strlen(msg_b64_item->valuestring), &msg_len);
 
+    size_t cond_bin_len;
+    char *cond_bin = base64_decode(cond_b64_item->valuestring,
+            strlen(cond_b64_item->valuestring), &cond_bin_len);
+
     CC *cond = calloc(1, sizeof(CC));
     
     if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
@@ -306,7 +315,7 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
         return NULL;
     }
 
-    int valid = cc_verify(cond, msg, msg_len, uri_item->valuestring);
+    int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len);
     cc_free(cond);
     cJSON *out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));
