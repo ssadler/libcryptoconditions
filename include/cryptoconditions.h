@@ -46,12 +46,6 @@ typedef struct CC {
 	};
 } CC;
 
-struct CCType cc_ed25519Type;
-struct CCType cc_anonType;
-struct CCType cc_prefixType;
-struct CCType cc_preimageType;
-struct CCType cc_thresholdType;
-
 
 /*
  * Common API

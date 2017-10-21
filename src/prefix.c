@@ -7,6 +7,9 @@
 #include "cryptoconditions.h"
 
 
+struct CCType cc_prefixType;
+
+
 static int prefixVerifyMessage(CC *cond, char *msg, size_t msgLength) {
     size_t prefixedLength = cond->prefixLength + msgLength;
     char *prefixed = calloc(1, prefixedLength);

@@ -7,6 +7,9 @@
 #include "cryptoconditions.h"
 
 
+struct CCType cc_thresholdType;
+
+
 static uint32_t thresholdSubtypes(CC *cond) {
     uint32_t mask = 0;
     for (int i=0; i<cond->size; i++) {

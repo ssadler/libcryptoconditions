@@ -6,6 +6,9 @@
 #include "cryptoconditions.h"
 
 
+struct CCType cc_preimageType;
+
+
 static CC *preimageFromJSON(cJSON *params, char *err) {
     cJSON *preimage_item = cJSON_GetObjectItem(params, "preimage");
     if (!cJSON_IsString(preimage_item)) {

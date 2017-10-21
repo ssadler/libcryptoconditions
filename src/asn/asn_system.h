@@ -9,7 +9,7 @@
 #ifndef	ASN_SYSTEM_H
 #define	ASN_SYSTEM_H
 
-#ifdef	HAVE_CONFIG_H
+#ifdef CRYPTOCONDITIONS_HAVE_CONFIG_H
 #include "config.h"
 #endif
 

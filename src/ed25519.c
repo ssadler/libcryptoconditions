@@ -7,6 +7,9 @@
 #include "cryptoconditions.h"
 
 
+struct CCType cc_ed25519Type;
+
+
 static char *ed25519Fingerprint(CC *cond) {
     Ed25519FingerprintContents_t fp;
     

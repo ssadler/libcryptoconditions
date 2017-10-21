@@ -7,6 +7,9 @@
 #include "cryptoconditions.h"
 
 
+struct CCType cc_anonType;
+
+
 static void mkAnon(Condition_t *asnCond, CC *cond) {
     CCType *realType = getTypeByAsnEnum(asnCond->present);
     cond->type = (CCType*) calloc(1, sizeof(CCType));
