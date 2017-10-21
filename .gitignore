@@ -4,7 +4,7 @@
 /Makefile.in
 /aclocal.m4
 /autom4te.cache/
-/config.*
+/src/cryptoconditions-config.*
 /configure
 /depcomp
 /install-sh

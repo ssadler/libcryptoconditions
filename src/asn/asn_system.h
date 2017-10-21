@@ -10,7 +10,7 @@
 #define	ASN_SYSTEM_H
 
 #ifdef CRYPTOCONDITIONS_HAVE_CONFIG_H
-#include "config.h"
+#include "cryptoconditions-config.h"
 #endif
 
 #ifndef _BSD_SOURCE
