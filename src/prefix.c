@@ -48,7 +48,7 @@ static unsigned long prefixCost(CC *cond) {
 }
 
 
-static void prefixFulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
+static void prefixFromFulfillment(Fulfillment_t *ffill, CC *cond) {
     cond->type = &cc_prefixType;
     PrefixFulfillment_t *p = ffill->choice.prefixSha256;
     cond->maxMessageLength = p->maxMessageLength;
@@ -57,6 +57,23 @@ static void prefixFulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
     cond->prefixLength = p->prefix.size;
     cond->subcondition = calloc(1, sizeof(CC));
     fulfillmentToCC(p->subfulfillment, cond->subcondition);
+}
+
+
+static Fulfillment_t *prefixToFulfillment(CC *cond) {
+    Fulfillment_t *ffill = asnFulfillmentNew(cond->subcondition);
+    if (!ffill) {
+        return NULL;
+    }
+    PrefixFulfillment_t *pf = calloc(1, sizeof(PrefixFulfillment_t));
+    OCTET_STRING_fromBuf(&pf->prefix, cond->prefix, cond->prefixLength);
+    pf->maxMessageLength = cond->maxMessageLength;
+    pf->subfulfillment = ffill;
+
+    ffill = calloc(1, sizeof(Fulfillment_t));
+    ffill->present = 1;
+    ffill->choice.prefixSha256 = pf;
+    return ffill;
 }
 
 
@@ -94,9 +111,17 @@ static CC *prefixFromJSON(cJSON *params, char *err) {
     }
     cond->subcondition = sub;
 
-    cond->prefix = base64_decode(prefix_item->valuestring, // TODO: verify
-            strlen(prefix_item->valuestring), &cond->prefixLength);
+    cond->prefix = base64_decode(prefix_item->valuestring, &cond->prefixLength);
     return cond;
+}
+
+
+static void prefixToJSON(CC *cond, cJSON *params) {
+    cJSON_AddNumberToObject(params, "maxMessageLength", (double)cond->maxMessageLength);
+    char *b64 = base64_encode(cond->prefix, cond->prefixLength);
+    cJSON_AddStringToObject(params, "prefix", b64);
+    free(b64);
+    cJSON_AddItemToObject(params, "subfulfillment", cc_conditionToJSON(cond->subcondition));
 }
 
 
@@ -107,4 +132,4 @@ static void prefixFree(CC *cond) {
 }
 
 
-struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerifyMessage, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixFulfillmentToCC, &prefixFree };
+struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerifyMessage, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixToJSON, &prefixFromFulfillment, &prefixToFulfillment, &prefixFree };

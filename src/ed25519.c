@@ -7,20 +7,20 @@
 #include "cryptoconditions.h"
 
 
+#define emptySig "0000000000000000000000000000000000000000000000000000000000000000"
+
+
 struct CCType cc_ed25519Type;
 
 
 static char *ed25519Fingerprint(CC *cond) {
-    Ed25519FingerprintContents_t fp;
-    
-    // Don't allocate memory for the buffer, the structure is on the stack so we'll borrow
-    // a reference
-    fp.publicKey.buf = cond->publicKey;
-    fp.publicKey.size = 32;
+    Ed25519FingerprintContents_t *fp = calloc(1, sizeof(Ed25519FingerprintContents_t));
+    OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, 32);
     
     char out[BUF_SIZE];
+    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Ed25519FingerprintContents, fp, out, BUF_SIZE);
+    ASN_STRUCT_FREE(asn_DEF_Ed25519FingerprintContents, fp);
 
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Ed25519FingerprintContents, &fp, out, BUF_SIZE);
     if (rc.encoded == -1) {
         return NULL; // TODO assert
     }
@@ -42,32 +42,82 @@ static unsigned long ed25519Cost(CC *cond) {
 
 
 static CC *ed25519FromJSON(cJSON *params, char *err) {
+    size_t binsz;
+
     cJSON *pk_item = cJSON_GetObjectItem(params, "publicKey");
     if (!cJSON_IsString(pk_item)) {
         strcpy(err, "publicKey must be a string");
         return NULL;
     }
-    char *pk_b64 = pk_item->valuestring;
-    size_t binsz;
+    char *pk = base64_decode(pk_item->valuestring, &binsz);
+    if (32 != binsz) {
+        strcpy(err, "publicKey has incorrect length");
+        free(pk);
+        return NULL;
+    }
+
+    cJSON *signature_item = cJSON_GetObjectItem(params, "signature");
+    char *sig = NULL;
+    if (!cJSON_IsNull(signature_item)) {
+        if (!cJSON_IsString(signature_item)) {
+            strcpy(err, "signature must be null or a string");
+            return NULL;
+        }
+        sig = base64_decode(signature_item->valuestring, &binsz);
+        if (64 != binsz) {
+            strcpy(err, "signature has incorrect length");
+            free(sig);
+            return NULL;
+        }
+    }
 
     CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_ed25519Type;
-    cond->publicKey = base64_decode(pk_b64, strlen(pk_b64), &binsz);
-    cond->signature = NULL;
+    cond->publicKey = pk;
+    cond->signature = sig;
     return cond;
 }
 
 
-static void ed25519FfillToCC(Fulfillment_t *ffill, CC *cond) {
+static void ed25519ToJSON(CC *cond, cJSON *params) {
+    char *b64 = base64_encode(cond->publicKey, 32);
+    cJSON_AddItemToObject(params, "publicKey", cJSON_CreateString(b64));
+    free(b64);
+    if (cond->signature) {
+        b64 = base64_encode(cond->signature, 64);
+        cJSON_AddItemToObject(params, "signature", cJSON_CreateString(b64));
+        free(b64);
+    }
+}
+
+
+static void ed25519FromFulfillment(Fulfillment_t *ffill, CC *cond) {
     cond->type = &cc_ed25519Type;
-    cond->publicKey = calloc(1, 32);
+    cond->publicKey = malloc(32);
     memcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf, 32);
-    cond->signature = calloc(1, 64);
+    cond->signature = malloc(64);
     memcpy(cond->signature, ffill->choice.ed25519Sha256.signature.buf, 64);
 }
 
 
+static Fulfillment_t *ed25519ToFulfillment(CC *cond) {
+    if (!cond->signature) {
+        return NULL;
+    }
+    Fulfillment_t *ffill = calloc(1, sizeof(Fulfillment_t));
+    ffill->present = 4;
+    Ed25519Sha512Fulfillment_t *ed2 = &ffill->choice.ed25519Sha256;
+    OCTET_STRING_fromBuf(&ed2->publicKey, cond->publicKey, 32);
+    OCTET_STRING_fromBuf(&ed2->signature, cond->signature, 64);
+    return ffill;
+}
+
+
 static void ed25519Free(CC *cond) {
+    free(cond->publicKey);
+    if (cond->signature) {
+        free(cond->signature);
+    }
     free(cond);
 }
 
@@ -77,4 +127,4 @@ static uint32_t ed25519Subtypes(CC *cond) {
 }
 
 
-struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519VerifyMessage, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519FfillToCC, &ed25519Free };
+struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519VerifyMessage, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519Free };

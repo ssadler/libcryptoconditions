@@ -2,7 +2,6 @@
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
 #include "asn/OCTET_STRING.h"
-#include "include/cJSON.h"
 #include "cryptoconditions.h"
 #include "utils.h"
 #include "strings.h"
@@ -11,6 +10,7 @@
 #include "src/prefix.c"
 #include "src/preimage.c"
 #include "src/anon.c"
+#include <cJSON.h>
 #include <malloc.h>
 #include <sodium.h>
 
@@ -46,10 +46,10 @@ static void appendUriSubtypes(uint32_t mask, char *buf) {
 char *cc_conditionUri(CC *cond) {
     char *fp = cond->type->fingerprint(cond);
     char *encoded = base64_encode(fp, 32);
-    int cost = cond->type->getCost(cond);
 
     char *out = calloc(1, 1000);
-    sprintf(out, "ni:///sha-256;%s?fpt=%s&cost=%i", encoded, cond->type->name, cost);
+    sprintf(out, "ni:///sha-256;%s?fpt=%s&cost=%u",
+            encoded, cond->type->name, cc_getCost(cond));
     
     if (cond->type->hasSubtypes) {
         appendUriSubtypes(cond->type->getSubtypes(cond), out);
@@ -131,6 +131,34 @@ size_t cc_conditionBinary(CC *cond, char *buf) {
 }
 
 
+size_t cc_fulfillmentBinary(CC *cond, char *buf) {
+    Fulfillment_t *ffill = asnFulfillmentNew(cond);
+    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, BUF_SIZE);
+    if (rc.encoded == -1) {
+        // TODO: crash
+        return NULL;
+    }
+    ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
+    return rc.encoded;
+}
+
+
+cJSON *cc_conditionToJSON(CC *cond) {
+    cJSON *params = cJSON_CreateObject();
+    cJSON_AddItemToObject(params, "type", cJSON_CreateString(cond->type->name));
+    cond->type->toJSON(cond, params);
+    return params;
+}
+
+
+char *cc_conditionToJSONString(CC *cond) {
+    cJSON *params = cc_conditionToJSON(cond);
+    char *out = cJSON_Print(params);
+    cJSON_Delete(params);
+    return out;
+}
+
+
 static cJSON *jsonCondition(CC *cond) {
     char buf[1000];
     size_t conditionBinLength = cc_conditionBinary(cond, buf);
@@ -156,10 +184,27 @@ static void asnCondition(CC *cond, Condition_t *asn) {
     // type. This works out nicely since the union choices have the same binary interface.
     
     CompoundSha256Condition_t *choice = &asn->choice.thresholdSha256;
-    choice->cost = cond->type->getCost(cond);
+    choice->cost = cc_getCost(cond);
     choice->fingerprint.buf = cond->type->fingerprint(cond);
     choice->fingerprint.size = 32;
     choice->subtypes = asnSubtypes(cond->type->getSubtypes(cond));
+}
+
+
+static Condition_t *asnConditionNew(CC *cond) {
+    Condition_t *asn = calloc(1, sizeof(Condition_t));
+    asnCondition(cond, asn);
+    return asn;
+}
+
+
+static Fulfillment_t *asnFulfillmentNew(CC *cond) {
+    return cond->type->toFulfillment(cond);
+}
+
+
+unsigned long cc_getCost(CC *cond) {
+    return cond->type->getCost(cond);
 }
 
 
@@ -207,6 +252,14 @@ CC *cc_conditionFromJSON(cJSON *params, char *err) {
 }
 
 
+CC *cc_conditionFromJSONString(const char *data, char *err) {
+    cJSON *params = cJSON_Parse(data);
+    CC *out = cc_conditionFromJSON(params, err);
+    cJSON_Delete(params);
+    return out;
+}
+
+
 static cJSON *jsonMakeCondition(cJSON *params, char *err) {
     CC *cond = cc_conditionFromJSON(params, err);
     cJSON *out = NULL;
@@ -224,7 +277,7 @@ static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
         fprintf(stderr, "Unknown fulfillment type\n");
         // TODO: panic?
     }
-    type->fulfillmentToCC(ffill, cond);
+    type->fromFulfillment(ffill, cond);
 }
 
 
@@ -296,16 +349,13 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
     }
 
     size_t ffill_bin_len;
-    char *ffill_bin = base64_decode(ffill_b64_item->valuestring,
-            strlen(ffill_b64_item->valuestring), &ffill_bin_len);
+    char *ffill_bin = base64_decode(ffill_b64_item->valuestring, &ffill_bin_len);
 
     size_t msg_len;
-    char *msg = base64_decode(msg_b64_item->valuestring,
-            strlen(msg_b64_item->valuestring), &msg_len);
+    char *msg = base64_decode(msg_b64_item->valuestring, &msg_len);
 
     size_t cond_bin_len;
-    char *cond_bin = base64_decode(cond_b64_item->valuestring,
-            strlen(cond_b64_item->valuestring), &cond_bin_len);
+    char *cond_bin = base64_decode(cond_b64_item->valuestring, &cond_bin_len);
 
     CC *cond = calloc(1, sizeof(CC));
     
@@ -331,8 +381,7 @@ static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
     }
 
     size_t ffill_bin_len;
-    char *ffill_bin = base64_decode(ffill_b64_item->valuestring,
-            strlen(ffill_b64_item->valuestring), &ffill_bin_len);
+    char *ffill_bin = base64_decode(ffill_b64_item->valuestring, &ffill_bin_len);
 
     CC *cond = calloc(1, sizeof(CC));
     if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
@@ -354,8 +403,7 @@ static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
     }
 
     size_t cond_bin_len;
-    char *condition_bin = base64_decode(conditionB64_item->valuestring,
-                                        strlen(conditionB64_item->valuestring), &cond_bin_len);
+    char *condition_bin = base64_decode(conditionB64_item->valuestring, &cond_bin_len);
     CC *cond = 0;
     int rc = cc_readConditionBinary(&cond, condition_bin, cond_bin_len);
 

@@ -63,11 +63,11 @@ char *base64_encode(const unsigned char *data, size_t input_length) {
 
 
 unsigned char *base64_decode(const char *data_,
-                             size_t input_length,
                              size_t *output_length) {
 
     if (decoding_table == NULL) build_decoding_table();
 
+    size_t input_length = strlen(data_);
     int rem = input_length % 4;
     char *data = malloc(input_length + (4-rem));
     strcpy(data, data_);

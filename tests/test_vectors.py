@@ -76,6 +76,25 @@ def test_decode_condition(vectors_file):
     assert response['uri'] == vectors['conditionUri']
 
 
+@pytest.mark.parametrize('vectors_file', all_vectors)
+def test_decode_condition(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    response = jsonRPC('decodeCondition', {
+        'bin': vectors['conditionBinary'],
+    })
+    assert response['uri'] == vectors['conditionUri']
+
+
+@pytest.mark.parametrize('vectors_file', all_vectors)
+def test_json_condition(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    err = ctypes.create_string_buffer(100)
+    cc = so.cc_conditionFromJSONString(json.dumps(vectors['json']), err)
+    out_ptr = so.cc_conditionToJSONString(cc)
+    out = ctypes.cast(out_ptr, c_char_p).value
+    assert json.loads(out) == vectors['json']
+
+
 def decode_base64(data):
     """Decode base64, padding being optional.
 

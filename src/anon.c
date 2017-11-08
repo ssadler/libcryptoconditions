@@ -50,10 +50,15 @@ static uint32_t anonSubtypes(CC *cond) {
 }
 
 
+static Fulfillment_t *anonFulfillment(CC *cond) {
+    return NULL;
+}
+
+
 static void anonFree(CC *cond) {
     free(cond->type);
     free(cond);
 }
 
 
-struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL, &anonFree };
+struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL, NULL, &anonFulfillment, &anonFree };
