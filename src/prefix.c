@@ -125,6 +125,11 @@ static void prefixToJSON(CC *cond, cJSON *params) {
 }
 
 
+int prefixIsFulfilled(CC *cond) {
+    return cc_isFulfilled(cond->subcondition);
+}
+
+
 static void prefixFree(CC *cond) {
     free(cond->prefix);
     cc_free(cond->subcondition);
@@ -132,4 +137,4 @@ static void prefixFree(CC *cond) {
 }
 
 
-struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerifyMessage, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixToJSON, &prefixFromFulfillment, &prefixToFulfillment, &prefixFree };
+struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerifyMessage, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixToJSON, &prefixFromFulfillment, &prefixToFulfillment, &prefixIsFulfilled, &prefixFree };

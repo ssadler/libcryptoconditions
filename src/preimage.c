@@ -66,6 +66,11 @@ static Fulfillment_t *preimageToFulfillment(CC *cond) {
 }
 
 
+int preimageIsFulfilled(CC *cond) {
+    return 1;
+}
+
+
 static void preimageFree(CC *cond) {
     free(cond->preimage);
     free(cond);
@@ -77,4 +82,4 @@ static uint32_t preimageSubtypes(CC *cond) {
 }
 
 
-struct CCType cc_preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageVerifyMessage, &preimageFingerprint, &preimageCost, &preimageSubtypes, &preimageFromJSON, &preimageToJSON, &preimageFromFulfillment, &preimageToFulfillment, &preimageFree };
+struct CCType cc_preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageVerifyMessage, &preimageFingerprint, &preimageCost, &preimageSubtypes, &preimageFromJSON, &preimageToJSON, &preimageFromFulfillment, &preimageToFulfillment, &preimageIsFulfilled, &preimageFree };

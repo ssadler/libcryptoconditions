@@ -418,6 +418,11 @@ static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
 }
 
 
+int cc_isFulfilled(CC *cond) {
+    return cond->type->isFulfilled(cond);
+}
+
+
 void cc_free(CC *cond) {
     cond->type->free(cond);
 }

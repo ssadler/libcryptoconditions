@@ -113,6 +113,11 @@ static Fulfillment_t *ed25519ToFulfillment(CC *cond) {
 }
 
 
+int ed25519IsFulfilled(CC *cond) {
+    return cond->signature > 0;
+}
+
+
 static void ed25519Free(CC *cond) {
     free(cond->publicKey);
     if (cond->signature) {
@@ -127,4 +132,4 @@ static uint32_t ed25519Subtypes(CC *cond) {
 }
 
 
-struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519VerifyMessage, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519Free };
+struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519VerifyMessage, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519IsFulfilled, &ed25519Free };

@@ -187,6 +187,20 @@ static void thresholdToJSON(CC *cond, cJSON *params) {
 }
 
 
+static void thresholdIsFulfilled(CC *cond) {
+    int nFulfilled = 0;
+    for (int i=0; i<cond->size; i++) {
+        if (cc_isFulfilled(cond->subconditions[i])) {
+            nFulfilled++;
+        }
+        if (nFulfilled == cond->threshold) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
 static void thresholdFree(CC *cond) {
     for (int i=0; i<cond->size; i++) {
         cc_free(cond->subconditions[i]);
@@ -196,4 +210,4 @@ static void thresholdFree(CC *cond) {
 }
 
 
-struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerifyMessage, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdToJSON, &thresholdFromFulfillment, &thresholdToFulfillment, &thresholdFree };
+struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerifyMessage, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdToJSON, &thresholdFromFulfillment, &thresholdToFulfillment, &thresholdIsFulfilled, &thresholdFree };

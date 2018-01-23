@@ -32,6 +32,7 @@ typedef struct CCType {
     void (*toJSON)(struct CC *cond, cJSON *params);
     void (*fromFulfillment)(Fulfillment_t *ffill, struct CC *cond);
     Fulfillment_t *(*toFulfillment)(struct CC *cond);
+    int (*isFulfilled)(struct CC *cond);
     void (*free)(struct CC *cond);
 } CCType;
 
@@ -65,6 +66,7 @@ struct CC *cc_conditionFromJSONString(const char *json, char *err);
 struct cJSON *cc_conditionToJSON(struct CC *cond);
 char *cc_conditionToJSONString(struct CC *cond);
 unsigned long cc_getCost(struct CC *cond);
+int cc_isFulfilled(struct CC *cond);
 
 
 /*
