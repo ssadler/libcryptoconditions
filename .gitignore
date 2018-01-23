@@ -20,3 +20,5 @@
 *.[ao]
 *~
 converter-sample.c
+config.*
+*.in
