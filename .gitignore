@@ -4,7 +4,7 @@
 /Makefile.in
 /aclocal.m4
 /autom4te.cache/
-/src/cryptoconditions-config.*
+/src/cryptoconditions-config.h
 /configure
 /depcomp
 /install-sh
@@ -21,4 +21,3 @@
 *~
 converter-sample.c
 config.*
-*.in
