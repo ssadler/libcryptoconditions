@@ -4,8 +4,8 @@
  * 	found in "CryptoConditions.asn"
  */
 
-#ifndef	_PreimageFulfillment_H_
-#define	_PreimageFulfillment_H_
+#ifndef	_AuxFingerprintContents_H_
+#define	_AuxFingerprintContents_H_
 
 
 #include <asn_application.h>
@@ -18,20 +18,20 @@
 extern "C" {
 #endif
 
-/* PreimageFulfillment */
-typedef struct PreimageFulfillment {
-	OCTET_STRING_t	 preimage;
+/* AuxFingerprintContents */
+typedef struct AuxFingerprintContents {
+	OCTET_STRING_t	 method;
 	
 	/* Context for parsing across buffer boundaries */
 	asn_struct_ctx_t _asn_ctx;
-} PreimageFulfillment_t;
+} AuxFingerprintContents_t;
 
 /* Implementation */
-extern asn_TYPE_descriptor_t asn_DEF_PreimageFulfillment;
+extern asn_TYPE_descriptor_t asn_DEF_AuxFingerprintContents;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/* _PreimageFulfillment_H_ */
+#endif	/* _AuxFingerprintContents_H_ */
 #include <asn_internal.h>

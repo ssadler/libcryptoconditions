@@ -9,10 +9,12 @@ ASN_MODULE_SOURCES=	\
 	ThresholdFulfillment.c	\
 	RsaSha256Fulfillment.c	\
 	Ed25519Sha512Fulfillment.c	\
+	AuxSha512Fulfillment.c	\
 	PrefixFingerprintContents.c	\
 	ThresholdFingerprintContents.c	\
 	RsaFingerprintContents.c	\
-	Ed25519FingerprintContents.c
+	Ed25519FingerprintContents.c	\
+	AuxFingerprintContents.c
 
 ASN_MODULE_HEADERS=	\
 	Condition.h	\
@@ -25,10 +27,12 @@ ASN_MODULE_HEADERS=	\
 	ThresholdFulfillment.h	\
 	RsaSha256Fulfillment.h	\
 	Ed25519Sha512Fulfillment.h	\
+	AuxSha512Fulfillment.h	\
 	PrefixFingerprintContents.h	\
 	ThresholdFingerprintContents.h	\
 	RsaFingerprintContents.h	\
-	Ed25519FingerprintContents.h
+	Ed25519FingerprintContents.h	\
+	AuxFingerprintContents.h
 
 ASN_MODULE_HEADERS+=INTEGER.h
 ASN_MODULE_HEADERS+=NativeEnumerated.h
@@ -110,5 +114,5 @@ clean:
 regen: regenerate-from-asn1-source
 
 regenerate-from-asn1-source:
-	asn1c ../../ext/crypto-conditions/src/asn1/CryptoConditions.asn
+	asn1c CryptoConditions.asn
 
