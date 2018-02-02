@@ -17,6 +17,8 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/asn/ThresholdFingerprintContents.c	\
 	src/asn/RsaFingerprintContents.c	\
 	src/asn/Ed25519FingerprintContents.c \
+	src/asn/AuxFingerprintContents.c \
+	src/asn/AuxFulfillment.c \
 	src/asn/INTEGER.c \
 	src/asn/NativeEnumerated.c \
 	src/asn/NativeInteger.c \

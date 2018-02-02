@@ -9,7 +9,7 @@ ASN_MODULE_SOURCES=	\
 	ThresholdFulfillment.c	\
 	RsaSha256Fulfillment.c	\
 	Ed25519Sha512Fulfillment.c	\
-	AuxSha512Fulfillment.c	\
+	AuxFulfillment.c	\
 	PrefixFingerprintContents.c	\
 	ThresholdFingerprintContents.c	\
 	RsaFingerprintContents.c	\
@@ -27,7 +27,7 @@ ASN_MODULE_HEADERS=	\
 	ThresholdFulfillment.h	\
 	RsaSha256Fulfillment.h	\
 	Ed25519Sha512Fulfillment.h	\
-	AuxSha512Fulfillment.h	\
+	AuxFulfillment.h	\
 	PrefixFingerprintContents.h	\
 	ThresholdFingerprintContents.h	\
 	RsaFingerprintContents.h	\

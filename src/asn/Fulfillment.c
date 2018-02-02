@@ -55,7 +55,7 @@ static asn_TYPE_member_t asn_MBR_Fulfillment_1[] = {
 	{ ATF_NOFLAGS, 0, offsetof(struct Fulfillment, choice.auxSha256),
 		(ASN_TAG_CLASS_CONTEXT | (15 << 2)),
 		-1,	/* IMPLICIT tag at current level */
-		&asn_DEF_AuxSha512Fulfillment,
+		&asn_DEF_AuxFulfillment,
 		0,	/* Defer constraints checking to the member type */
 		0,	/* PER is not compiled, use -gen-PER */
 		0,

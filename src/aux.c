@@ -141,7 +141,7 @@ static Fulfillment_t *auxToFulfillment(CC *cond) {
     }
     Fulfillment_t *ffill = calloc(1, sizeof(Fulfillment_t));
     ffill->present = 15;
-    AuxSha512Fulfillment_t *aux = &ffill->choice.auxSha256;
+    AuxFulfillment_t *aux = &ffill->choice.auxSha256;
     OCTET_STRING_fromBuf(&aux->conditionAux, cond->conditionAux, cond->conditionAuxLength);
     OCTET_STRING_fromBuf(&aux->fulfillmentAux, cond->fulfillmentAux, cond->fulfillmentAuxLength);
     return ffill;

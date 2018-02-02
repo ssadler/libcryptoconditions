@@ -41,7 +41,7 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       thresholdSha256  [2] ThresholdFulfillment,
       rsaSha256        [3] RsaSha256Fulfillment,
       ed25519Sha256    [4] Ed25519Sha512Fulfillment,
-      auxSha256        [15] AuxSha512Fulfillment
+      auxSha256        [15] AuxFulfillment
     }
 
     PreimageFulfillment ::= SEQUENCE {
@@ -69,7 +69,7 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       signature            OCTET STRING (SIZE(64))
     }
 
-    AuxSha512Fulfillment ::= SEQUENCE {
+    AuxFulfillment ::= SEQUENCE {
       method               OCTET STRING,
       conditionAux         OCTET STRING,
       fulfillmentAux       OCTET STRING

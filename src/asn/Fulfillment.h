@@ -14,7 +14,7 @@
 #include "PreimageFulfillment.h"
 #include "RsaSha256Fulfillment.h"
 #include "Ed25519Sha512Fulfillment.h"
-#include "AuxSha512Fulfillment.h"
+#include "AuxFulfillment.h"
 #include <constr_CHOICE.h>
 
 #ifdef __cplusplus
@@ -45,7 +45,7 @@ typedef struct Fulfillment {
 		struct ThresholdFulfillment	*thresholdSha256;
 		RsaSha256Fulfillment_t	 rsaSha256;
 		Ed25519Sha512Fulfillment_t	 ed25519Sha256;
-		AuxSha512Fulfillment_t	 auxSha256;
+		AuxFulfillment_t	 auxSha256;
 	} choice;
 	
 	/* Context for parsing across buffer boundaries */

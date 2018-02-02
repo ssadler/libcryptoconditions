@@ -61,4 +61,9 @@ static void anonFree(CC *cond) {
 }
 
 
-struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL, NULL, &anonFulfillment, &anonFree };
+static void anonIsFulfilled(CC *cond) {
+    return 0;
+}
+
+
+struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };

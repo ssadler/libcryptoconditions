@@ -305,7 +305,7 @@ int cc_verifyMessage(CC *cond, char *msg, size_t length) {
 
 int cc_verifyAux(CC *cond, VerifyAux verify, void *context) {
     if (cond->type->typeId == cc_thresholdType.typeId) {
-        for (int i=0; i<cond->size; i++) {
+        for (int i=0; i<cond->threshold; i++) {
             if (!cc_verifyAux(cond->subconditions[i], verify, context)) {
                 return 0;
             }
@@ -323,7 +323,8 @@ int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condB
               VerifyAux verifyAux, void *auxContext) {
     char targetBinary[1000];
     size_t binLength = cc_conditionBinary(cond, targetBinary);
-    int pass = cc_verifyMessage(cond, msg, msgLength) && 0 == memcmp(condBin, targetBinary, binLength) &&
+    int pass = cc_verifyMessage(cond, msg, msgLength) &&
+               0 == memcmp(condBin, targetBinary, binLength) &&
                cc_verifyAux(cond, verifyAux, auxContext);
     return pass;
 }
@@ -350,7 +351,10 @@ static cJSON *jsonErr(char *err) {
 }
 
 
-int haltVerify(CC *cond, void *context) {
+int jsonVerifyAux(CC *cond, void *context) {
+    if (strcmp(cond->method, "isEqual") == 0) {
+        return memcmp(cond->conditionAux, cond->fulfillmentAux, cond->conditionAuxLength) == 0;
+    }
     fprintf(stderr, "Cannot verify aux; user functions unknown\nHalting\n");
     exit(1);
 }
@@ -393,7 +397,7 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
         return NULL;
     }
 
-    int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len, *haltVerify, NULL);
+    int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len, *jsonVerifyAux, NULL);
     cc_free(cond);
     cJSON *out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));
