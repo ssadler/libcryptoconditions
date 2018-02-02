@@ -10,20 +10,24 @@
 #include "src/prefix.c"
 #include "src/preimage.c"
 #include "src/anon.c"
+#include "src/aux.c"
 #include <cJSON.h>
 #include <malloc.h>
 #include <sodium.h>
 
 
-static struct CCType *typeRegistry[] = {
+struct CCType *typeRegistry[] = {
     &cc_preimageType,
     &cc_prefixType,
     &cc_thresholdType,
     NULL, /* &cc_rsaType */
-    &cc_ed25519Type
+    &cc_ed25519Type,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 5-14 unused */
+    &cc_auxType
 };
 
-static int typeRegistryLength = 5;
+
+int typeRegistryLength = 15;
 
 
 static void appendUriSubtypes(uint32_t mask, char *buf) {
@@ -299,10 +303,28 @@ int cc_verifyMessage(CC *cond, char *msg, size_t length) {
 }
 
 
-int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength) {
+int cc_verifyAux(CC *cond, VerifyAux verify, void *context) {
+    if (cond->type->typeId == cc_thresholdType.typeId) {
+        for (int i=0; i<cond->size; i++) {
+            if (!cc_verifyAux(cond->subconditions[i], verify, context)) {
+                return 0;
+            }
+        }
+    } else if (cond->type->typeId == cc_prefixType.typeId) {
+        return cc_verifyAux(cond->subcondition, verify, context);
+    } else if (cond->type->typeId == cc_auxType.typeId) {
+        return verify(cond, context);
+    }
+    return 1;
+}
+
+
+int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength,
+              VerifyAux verifyAux, void *auxContext) {
     char targetBinary[1000];
     size_t binLength = cc_conditionBinary(cond, targetBinary);
-    int pass = cc_verifyMessage(cond, msg, msgLength) && 0 == memcmp(condBin, targetBinary, binLength);
+    int pass = cc_verifyMessage(cond, msg, msgLength) && 0 == memcmp(condBin, targetBinary, binLength) &&
+               cc_verifyAux(cond, verifyAux, auxContext);
     return pass;
 }
 
@@ -325,6 +347,12 @@ static cJSON *jsonErr(char *err) {
     cJSON *out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "error", cJSON_CreateString(err));
     return out;
+}
+
+
+int haltVerify(CC *cond, void *context) {
+    fprintf(stderr, "Cannot verify aux; user functions unknown\nHalting\n");
+    exit(1);
 }
 
 
@@ -365,7 +393,7 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
         return NULL;
     }
 
-    int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len);
+    int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len, *haltVerify, NULL);
     cc_free(cond);
     cJSON *out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));

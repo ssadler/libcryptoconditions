@@ -46,6 +46,7 @@ typedef struct CC {
         struct { long threshold; int size; struct CC **subconditions; };
         struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition; unsigned long maxMessageLength; };
         struct { char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
+        struct { char method[64]; char *conditionAux; size_t conditionAuxLength; char *fulfillmentAux; size_t fulfillmentAuxLength; };
 	};
 } CC;
 
@@ -56,9 +57,6 @@ typedef struct CC {
 size_t cc_conditionBinary(struct CC *cond, char *buf);
 size_t cc_fulfillmentBinary(struct CC *cond, char *buf);
 int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
-int cc_verify(struct CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength);
-int cc_verifyMessage(struct CC *cond, char *msg, size_t length);
-void cc_free(struct CC *cond);
 CCType *getTypeByAsnEnum(Condition_PR present);
 int cc_verifyMessage(struct CC *cond, char *msg, size_t length);
 struct CC *cc_conditionFromJSON(cJSON *params, char *err);
@@ -67,6 +65,12 @@ struct cJSON *cc_conditionToJSON(struct CC *cond);
 char *cc_conditionToJSONString(struct CC *cond);
 unsigned long cc_getCost(struct CC *cond);
 int cc_isFulfilled(struct CC *cond);
+static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
+typedef int (*VerifyAux)(CC *cond, void *context);
+int cc_verify(struct CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength,
+        VerifyAux verifyAux, void *auxContext);
+void cc_free(struct CC *cond);
+int cc_verifyAux(CC *cond, VerifyAux fn, void *context);
 
 
 /*
@@ -79,13 +83,10 @@ static Condition_t *asnConditionNew(CC *cond);
 static Fulfillment_t *asnFulfillmentNew(CC *cond);
 static uint32_t getSubtypes(CC *cond);
 static cJSON *jsonMakeCondition(cJSON *params, char *err);
-static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
-
 
 /*
  * Return codes
  */
-
 enum CCResult {
     CC_OK = 0,
     CC_Error = 1
