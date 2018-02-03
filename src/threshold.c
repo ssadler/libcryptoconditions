@@ -110,8 +110,8 @@ static void thresholdFromFulfillment(Fulfillment_t *ffill, CC *cond) {
 
 
 static int cmpByCostDesc(const void *c1, const void *c2) {
-    return cc_getCost((CC*)c2) - cc_getCost((CC*)c1);
-}
+    return cc_getCost(*((CC**)c1)) - cc_getCost(*((CC**)c2));           
+}                                                         
 
 
 static Fulfillment_t *thresholdToFulfillment(CC *cond) {
