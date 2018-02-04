@@ -1,6 +1,7 @@
 
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
+#include "asn/AuxFulfillment.h"
 #include "asn/AuxFingerprintContents.h"
 #include "asn/OCTET_STRING.h"
 #include "include/cJSON.h"
@@ -38,7 +39,11 @@ static unsigned long auxCost(CC *cond) {
 }
 
 
-int checkString(cJSON *value, char *err, char *key) {
+int checkString(cJSON *value, char *key, char *err) {
+    if (value == NULL) {
+        sprintf(err, "%s is required", key);
+        return 0;
+    }
     if (!cJSON_IsString(value)) {
         sprintf(err, "%s must be a string", key);
         return 0;
@@ -87,7 +92,6 @@ static CC *auxFromJSON(cJSON *params, char *err) {
         return NULL;
     }
 
-
     CC *cond = calloc(1, sizeof(CC));
     strcpy(cond->method, method_item->valuestring);
     cond->conditionAux = conditionAux;
@@ -121,12 +125,17 @@ static void auxToJSON(CC *cond, cJSON *params) {
 static void auxFromFulfillment(Fulfillment_t *ffill, CC *cond) {
     cond->type = &cc_auxType;
 
-    OCTET_STRING_t octets = ffill->choice.auxSha256.conditionAux;
+    AuxFulfillment_t *aux = &ffill->choice.auxSha256;
+
+    memcpy(cond->method, aux->method.buf, aux->method.size);
+    cond->method[aux->method.size] = NULL;
+
+    OCTET_STRING_t octets = aux->conditionAux;
     cond->conditionAuxLength = octets.size;
     cond->conditionAux = malloc(octets.size);
     memcpy(cond->conditionAux, octets.buf, octets.size);
 
-    octets = ffill->choice.auxSha256.fulfillmentAux;
+    octets = aux->fulfillmentAux;
     if (octets.size) {
         cond->fulfillmentAuxLength = octets.size;
         cond->fulfillmentAux = malloc(octets.size);
@@ -140,8 +149,9 @@ static Fulfillment_t *auxToFulfillment(CC *cond) {
         return NULL;
     }
     Fulfillment_t *ffill = calloc(1, sizeof(Fulfillment_t));
-    ffill->present = 15;
+    ffill->present = Fulfillment_PR_auxSha256;
     AuxFulfillment_t *aux = &ffill->choice.auxSha256;
+    OCTET_STRING_fromBuf(&aux->method, cond->method, strlen(cond->method));
     OCTET_STRING_fromBuf(&aux->conditionAux, cond->conditionAux, cond->conditionAuxLength);
     OCTET_STRING_fromBuf(&aux->fulfillmentAux, cond->fulfillmentAux, cond->fulfillmentAuxLength);
     return ffill;
@@ -163,6 +173,18 @@ static void auxFree(CC *cond) {
 
 
 static uint32_t auxSubtypes(CC *cond) {
+    return 0;
+}
+
+
+/*
+ * The JSON api doesn't contain custom verifiers, so a stub method is provided suitable for testing
+ */
+int jsonVerifyAux(CC *cond, void *context) {
+    if (strcmp(cond->method, "equals") == 0) {
+        return memcmp(cond->conditionAux, cond->fulfillmentAux, cond->conditionAuxLength) == 0;
+    }
+    fprintf(stderr, "Cannot verify aux; user functions unknown\nHalting\n");
     return 0;
 }
 

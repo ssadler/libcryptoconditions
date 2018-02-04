@@ -59,7 +59,7 @@ static void preimageFromFulfillment(Fulfillment_t *ffill, CC *cond) {
 
 static Fulfillment_t *preimageToFulfillment(CC *cond) {
     Fulfillment_t *ffill = calloc(1, sizeof(Fulfillment_t));
-    ffill->present = 0;
+    ffill->present = Fulfillment_PR_preimageSha256;
     PreimageFulfillment_t *pf = &ffill->choice.preimageSha256;
     OCTET_STRING_fromBuf(&pf->preimage, cond->preimage, cond->preimageLength);
     return ffill;

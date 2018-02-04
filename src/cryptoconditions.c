@@ -27,7 +27,7 @@ struct CCType *typeRegistry[] = {
 };
 
 
-int typeRegistryLength = 15;
+int typeRegistryLength = sizeof(typeRegistry) / sizeof(typeRegistry[0]);
 
 
 static void appendUriSubtypes(uint32_t mask, char *buf) {
@@ -139,7 +139,8 @@ size_t cc_fulfillmentBinary(CC *cond, char *buf) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, BUF_SIZE);
     if (rc.encoded == -1) {
-        // TODO: crash
+        // TODO: make sure this never happens?
+        printf("FULFILLMENT NOT ENCODED\n");
         return NULL;
     }
     ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
@@ -174,6 +175,20 @@ static cJSON *jsonCondition(CC *cond) {
 
     char *b64 = base64_encode(buf, conditionBinLength);
     cJSON_AddItemToObject(root, "bin", cJSON_CreateString(b64));
+    free(b64);
+
+    return root;
+}
+
+
+
+static cJSON *jsonFulfillment(CC *cond) {
+    char buf[1000];
+    size_t fulfillmentBinLength = cc_fulfillmentBinary(cond, buf);
+
+    cJSON *root = cJSON_CreateObject();
+    char *b64 = base64_encode(buf, fulfillmentBinLength);
+    cJSON_AddItemToObject(root, "fulfillment", cJSON_CreateString(b64));
     free(b64);
 
     return root;
@@ -275,6 +290,17 @@ static cJSON *jsonMakeCondition(cJSON *params, char *err) {
 }
 
 
+static cJSON *jsonMakeFulfillment(cJSON *params, char *err) {
+    CC *cond = cc_conditionFromJSON(params, err);
+    cJSON *out = NULL;
+    if (cond != NULL) {
+        out = jsonFulfillment(cond);
+        cc_free(cond);
+    }
+    return out;
+}
+
+
 static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
     CCType *type = getTypeByAsnEnum(ffill->present);
     if (NULL == type) {
@@ -323,10 +349,18 @@ int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condB
               VerifyAux verifyAux, void *auxContext) {
     char targetBinary[1000];
     size_t binLength = cc_conditionBinary(cond, targetBinary);
-    int pass = cc_verifyMessage(cond, msg, msgLength) &&
-               0 == memcmp(condBin, targetBinary, binLength) &&
-               cc_verifyAux(cond, verifyAux, auxContext);
-    return pass;
+    if (0 != memcmp(condBin, targetBinary, binLength)) {
+        return 0;
+    }
+
+    if (!cc_verifyMessage(cond, msg, msgLength)) {
+        return 0;
+    }
+
+    if (!cc_verifyAux(cond, verifyAux, auxContext)) {
+        return 0;
+    }
+    return 1;
 }
 
 
@@ -348,15 +382,6 @@ static cJSON *jsonErr(char *err) {
     cJSON *out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "error", cJSON_CreateString(err));
     return out;
-}
-
-
-int jsonVerifyAux(CC *cond, void *context) {
-    if (strcmp(cond->method, "isEqual") == 0) {
-        return memcmp(cond->conditionAux, cond->fulfillmentAux, cond->conditionAuxLength) == 0;
-    }
-    fprintf(stderr, "Cannot verify aux; user functions unknown\nHalting\n");
-    exit(1);
 }
 
 
@@ -390,7 +415,7 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
     char *cond_bin = base64_decode(cond_b64_item->valuestring, &cond_bin_len);
 
     CC *cond = calloc(1, sizeof(CC));
-    
+
     if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
         strcpy(err, "Invalid fulfillment payload");
         // TODO: free cond
@@ -462,6 +487,7 @@ void cc_free(CC *cond) {
 
 char *cc_jsonMethodNames[] = {
     "makeCondition",
+    "makeFulfillment",
     "decodeCondition",
     "decodeFulfillment",
     "verifyFulfillment"
@@ -470,6 +496,7 @@ char *cc_jsonMethodNames[] = {
 
 cJSON *(*cc_jsonMethodImplementations[])(cJSON *params, char *err) = {
     &jsonMakeCondition,
+    &jsonMakeFulfillment,
     &jsonDecodeCondition,
     &jsonDecodeFulfillment,
     &jsonVerifyFulfillment
@@ -488,7 +515,9 @@ static cJSON* execJsonRPC(cJSON *root, char *err) {
         return jsonErr("params is not an object");
     }
 
-    for (int i=0; i<4; i++) {
+    int nMethods = sizeof(cc_jsonMethodNames) / sizeof(*cc_jsonMethodNames);
+
+    for (int i=0; i<nMethods; i++) {
         if (0 == strcmp(cc_jsonMethodNames[i], method_item->valuestring)) {
             return cc_jsonMethodImplementations[i](params, err);
         }

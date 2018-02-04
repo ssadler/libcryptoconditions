@@ -2,6 +2,7 @@ import json
 import ctypes
 import base64
 import pytest
+import os.path
 from ctypes import *
 
 
@@ -21,6 +22,7 @@ v0010 = '0010_test-basic-threshold-same-fulfillment-twice'
 v0015 = '0015_test-basic-ed25519'
 v0016 = '0016_test-advanced-notarized-receipt'
 v0017 = '0017_test-advanced-notarized-receipt-multiple-notaries'
+
 # These contain RSA conditions which are not implemented yet
 #v0008 = '0008_test-basic-threshold'
 #v0009 = '0009_test-basic-threshold-same-condition-twice'
@@ -29,9 +31,12 @@ v0017 = '0017_test-advanced-notarized-receipt-multiple-notaries'
 #v0013 = '0013_test-basic-rsa'
 #v0014 = '0014_test-basic-rsa4096'
 
+# Custom test vectors
+v1000 = '1000_test-minimal-aux'
+
 
 all_vectors = {v0000, v0001, v0002, v0004, v0005, v0006, v0007, v0010,
-               v0015, v0016, v0017}
+               v0015, v0016, v0017, v1000}
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
@@ -41,6 +46,15 @@ def test_condition(vectors_file):
     assert response == {
         'uri': vectors['conditionUri'],
         'bin': vectors['conditionBinary'],
+    }
+
+
+@pytest.mark.parametrize('vectors_file', all_vectors)
+def test_makeFulfillment(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    response = jsonRPC('makeFulfillment', vectors['json'])
+    assert response == {
+        'fulfillment': vectors['fulfillment'],
     }
 
 
@@ -77,15 +91,6 @@ def test_decode_condition(vectors_file):
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
-def test_decode_condition(vectors_file):
-    vectors = _read_vectors(vectors_file)
-    response = jsonRPC('decodeCondition', {
-        'bin': vectors['conditionBinary'],
-    })
-    assert response['uri'] == vectors['conditionUri']
-
-
-@pytest.mark.parametrize('vectors_file', all_vectors)
 def test_json_condition(vectors_file):
     vectors = _read_vectors(vectors_file)
     err = ctypes.create_string_buffer(100)
@@ -93,6 +98,10 @@ def test_json_condition(vectors_file):
     out_ptr = so.cc_conditionToJSONString(cc)
     out = ctypes.cast(out_ptr, c_char_p).value
     assert json.loads(out) == vectors['json']
+
+
+def b16_to_b64(b16):
+    return base64.urlsafe_b64encode(base64.b16decode(b16)).rstrip('=')
 
 
 def decode_base64(data):
@@ -109,8 +118,15 @@ def decode_base64(data):
 
 
 def _read_vectors(name):
-    path = 'ext/crypto-conditions/test-vectors/valid/%s.json' % name
-    vectors = json.load(open(path))
+    paths = ['ext/crypto-conditions/test-vectors/valid/%s.json',
+             'tests/custom-vectors/%s.json']
+    for fmt in paths:
+        path = fmt % name
+        if os.path.isfile(path):
+            vectors = json.load(open(path))
+            break
+    else:
+        raise IOError("Vectors file not found: %s.json" % name)
     for key in ['conditionBinary', 'fulfillment', 'message']:
         vectors[key] = b16_to_b64(vectors[key])
     return vectors
@@ -122,9 +138,3 @@ def jsonRPC(method, params):
         'params': params,
     }))
     return json.loads(out)
-
-
-def b16_to_b64(b16):
-    return base64.urlsafe_b64encode(base64.b16decode(b16)).rstrip('=')
-
-

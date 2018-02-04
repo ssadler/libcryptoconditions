@@ -105,7 +105,7 @@ static Fulfillment_t *ed25519ToFulfillment(CC *cond) {
         return NULL;
     }
     Fulfillment_t *ffill = calloc(1, sizeof(Fulfillment_t));
-    ffill->present = 4;
+    ffill->present = Fulfillment_PR_ed25519Sha256;
     Ed25519Sha512Fulfillment_t *ed2 = &ffill->choice.ed25519Sha256;
     OCTET_STRING_fromBuf(&ed2->publicKey, cond->publicKey, 32);
     OCTET_STRING_fromBuf(&ed2->signature, cond->signature, 64);

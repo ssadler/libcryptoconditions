@@ -110,14 +110,14 @@ static void thresholdFromFulfillment(Fulfillment_t *ffill, CC *cond) {
 
 
 static int cmpByCostDesc(const void *c1, const void *c2) {
-    return cc_getCost((CC*)c2) - cc_getCost((CC*)c1);
-}
+    return cc_getCost(*((CC**)c1)) - cc_getCost(*((CC**)c2));           
+}                                                         
 
 
 static Fulfillment_t *thresholdToFulfillment(CC *cond) {
     CC *sub;
     Fulfillment_t *fulfillment;
-
+    
     // TODO: Do this to a copy
     qsort(cond->subconditions, cond->size, sizeof(CC*), cmpByCostDesc);
 
@@ -141,7 +141,7 @@ static Fulfillment_t *thresholdToFulfillment(CC *cond) {
     }
 
     fulfillment = calloc(1, sizeof(Fulfillment_t));
-    fulfillment->present = 2;
+    fulfillment->present = Fulfillment_PR_thresholdSha256;
     fulfillment->choice.thresholdSha256 = tf;
     return fulfillment;
 }
@@ -164,7 +164,7 @@ static CC *thresholdFromJSON(cJSON *params, char *err) {
     cond->type = &cc_thresholdType;
     cond->threshold = (long) threshold_item->valuedouble;
     cond->size = cJSON_GetArraySize(subfulfillments_item);
-    cond->subconditions = calloc(1, cond->size * sizeof(CC*));
+    cond->subconditions = calloc(cond->size, sizeof(CC*));
     
     cJSON *sub;
     for (int i=0; i<cond->size; i++) {
