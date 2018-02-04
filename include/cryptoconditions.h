@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 struct CC;
+struct CCVisitor;
 
 
 /* Condition Type */
@@ -24,7 +25,7 @@ typedef struct CCType {
     char name[100];
     Condition_PR asnType;
     int hasSubtypes;
-    int (*verifyMessage)(struct CC *cond, char *msg, size_t msgLength);
+    int (*visitChildren)(struct CC *cond, struct CCVisitor visitor);
     char *(*fingerprint)(struct CC *cond);
     unsigned long (*getCost)(struct CC *cond);
     uint32_t (*getSubtypes)(struct CC *cond);
@@ -37,7 +38,9 @@ typedef struct CCType {
 } CCType;
 
 
-/* Condition */
+/*
+ * Crypto Condition
+ */
 typedef struct CC {
 	CCType *type;
 	union {
@@ -51,16 +54,26 @@ typedef struct CC {
 
 
 /*
+ * Crypto Condition Visitor
+ */
+typedef struct CCVisitor {
+    int (*visit)(struct CC *cond, struct CCVisitor visitor);
+    char *msg;
+    size_t msgLength;
+    void *context;
+} CCVisitor;
+
+
+/*
  * Common API
  */
 size_t cc_conditionBinary(struct CC *cond, char *buf);
 size_t cc_fulfillmentBinary(struct CC *cond, char *buf);
 int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
 int cc_verify(struct CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength);
-int cc_verifyMessage(struct CC *cond, char *msg, size_t length);
+int cc_visit(struct CC *cond, struct CCVisitor visitor);
 void cc_free(struct CC *cond);
 CCType *getTypeByAsnEnum(Condition_PR present);
-int cc_verifyMessage(struct CC *cond, char *msg, size_t length);
 struct CC *cc_conditionFromJSON(cJSON *params, char *err);
 struct CC *cc_conditionFromJSONString(const char *json, char *err);
 struct cJSON *cc_conditionToJSON(struct CC *cond);

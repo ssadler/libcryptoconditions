@@ -42,11 +42,11 @@ static unsigned long thresholdCost(CC *cond) {
 }
 
 
-static int thresholdVerifyMessage(CC *cond, char *msg, size_t length) {
-    int res;
+static int thresholdVisitChildren(CC *cond, CCVisitor visitor) {
     for (int i=0; i<cond->threshold; i++) {
-        res = cc_verifyMessage(cond->subconditions[i], msg, length);
-        if (!res) return 0;
+        if (!cc_visit(cond->subconditions[i], visitor)) {
+            return 0;
+        }
     }
     return 1;
 }
@@ -210,4 +210,4 @@ static void thresholdFree(CC *cond) {
 }
 
 
-struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVerifyMessage, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdToJSON, &thresholdFromFulfillment, &thresholdToFulfillment, &thresholdIsFulfilled, &thresholdFree };
+struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVisitChildren, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdToJSON, &thresholdFromFulfillment, &thresholdToFulfillment, &thresholdIsFulfilled, &thresholdFree };

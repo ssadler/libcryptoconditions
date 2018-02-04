@@ -294,16 +294,25 @@ int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_
 }
 
 
-int cc_verifyMessage(CC *cond, char *msg, size_t length) {
-    return cond->type->verifyMessage(cond, msg, length);
+int cc_visit(CC *cond, CCVisitor visitor) {
+    int out = visitor.visit(cond, visitor);
+    if (out && cond->type->visitChildren) {
+        out = cond->type->visitChildren(cond, visitor);
+    }
+    return out;
 }
 
 
 int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength) {
     char targetBinary[1000];
     size_t binLength = cc_conditionBinary(cond, targetBinary);
-    int pass = cc_verifyMessage(cond, msg, msgLength) && 0 == memcmp(condBin, targetBinary, binLength);
-    return pass;
+    if (0 != memcmp(condBin, targetBinary, binLength)) {
+        return 0;
+    }
+    if (!cc_ed25519VerifyTree(cond, msg, msgLength)) {
+        return 0;
+    }
+    return 1;
 }
 
 

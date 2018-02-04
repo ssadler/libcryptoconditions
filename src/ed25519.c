@@ -30,9 +30,16 @@ static char *ed25519Fingerprint(CC *cond) {
 }
 
 
-static int ed25519VerifyMessage(CC *cond, char *msg, size_t length) {
-    int rc = crypto_sign_verify_detached(cond->signature, msg, length, cond->publicKey);
+static int ed25519Verify(CC *cond, CCVisitor visitor) {
+    if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
+    int rc = crypto_sign_verify_detached(cond->signature, visitor.msg, visitor.msgLength, cond->publicKey);
     return rc == 0;
+}
+
+
+static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
+    CCVisitor visitor = {&ed25519Verify, msg, msgLength, NULL}; 
+    return cc_visit(cond, visitor);
 }
 
 
@@ -132,4 +139,4 @@ static uint32_t ed25519Subtypes(CC *cond) {
 }
 
 
-struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519VerifyMessage, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519IsFulfilled, &ed25519Free };
+struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, 0, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519IsFulfilled, &ed25519Free };
