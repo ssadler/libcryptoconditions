@@ -5,8 +5,8 @@
 #include <cJSON.h>
 
 
-#ifndef	CRYPTOCONDITIONS_H
-#define	CRYPTOCONDITIONS_H
+#ifndef CRYPTOCONDITIONS_H
+#define CRYPTOCONDITIONS_H
 
 #define BUF_SIZE 1024 * 1024
 
@@ -42,14 +42,14 @@ typedef struct CCType {
  * Crypto Condition
  */
 typedef struct CC {
-	CCType *type;
-	union {
+    CCType *type;
+    union {
         struct { char *publicKey, *signature; };
         struct { char *preimage; size_t preimageLength; };
         struct { long threshold; int size; struct CC **subconditions; };
         struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition; unsigned long maxMessageLength; };
         struct { char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
-	};
+    };
 } CC;
 
 
