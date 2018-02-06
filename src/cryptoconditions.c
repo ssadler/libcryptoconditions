@@ -427,6 +427,53 @@ static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
 }
 
 
+static cJSON *jsonSignTreeEd25519(cJSON *params, char *err) {
+    cJSON *condition_item = cJSON_GetObjectItem(params, "condition");
+    CC *cond = cc_conditionFromJSON(condition_item, err);
+    if (cond == NULL) {
+        return NULL;
+    }
+
+    cJSON *sk_b64_item = cJSON_GetObjectItem(params, "privateKey");
+    cJSON *msg_b64_item = cJSON_GetObjectItem(params, "message");
+
+    if (!cJSON_IsString(sk_b64_item)) {
+        strcpy(err, "privateKey must be a string");
+        return NULL;
+    }
+    if (!cJSON_IsString(msg_b64_item)) {
+        strcpy(err, "message must be a string");
+        return NULL;
+    }
+
+    size_t msg_len;
+    char *msg = base64_decode(msg_b64_item->valuestring, &msg_len);
+    if (!msg) {
+        strcpy(err, "message is not valid b64");
+        return;
+    }
+
+    size_t sk_len;
+    char *privateKey = base64_decode(sk_b64_item->valuestring, &sk_len);
+    if (!privateKey) {
+        strcpy(err, "privateKey is not valid b64");
+        return;
+    }
+
+    int nSigned = cc_signTreeEd25519(cond, privateKey, msg, msg_len);
+
+    cJSON *out = cJSON_CreateObject();
+    cJSON_AddItemToObject(out, "num_signed", cJSON_CreateNumber(nSigned));
+    cJSON_AddItemToObject(out, "condition", cc_conditionToJSON(cond));
+
+    cc_free(cond);
+    free(msg);
+    free(privateKey);
+
+    return out;
+}
+
+
 int cc_isFulfilled(CC *cond) {
     return cond->type->isFulfilled(cond);
 }
@@ -441,7 +488,8 @@ char *cc_jsonMethodNames[] = {
     "makeCondition",
     "decodeCondition",
     "decodeFulfillment",
-    "verifyFulfillment"
+    "verifyFulfillment",
+    "signTreeEd25519"
 };
 
 
@@ -449,7 +497,8 @@ cJSON *(*cc_jsonMethodImplementations[])(cJSON *params, char *err) = {
     &jsonMakeCondition,
     &jsonDecodeCondition,
     &jsonDecodeFulfillment,
-    &jsonVerifyFulfillment
+    &jsonVerifyFulfillment,
+    &jsonSignTreeEd25519
 };
 
 
@@ -465,7 +514,9 @@ static cJSON* execJsonRPC(cJSON *root, char *err) {
         return jsonErr("params is not an object");
     }
 
-    for (int i=0; i<4; i++) {
+    int nMethods = sizeof(cc_jsonMethodNames) / sizeof(*cc_jsonMethodNames);
+
+    for (int i=0; i<nMethods; i++) {
         if (0 == strcmp(cc_jsonMethodNames[i], method_item->valuestring)) {
             return cc_jsonMethodImplementations[i](params, err);
         }

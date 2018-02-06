@@ -80,6 +80,7 @@ struct cJSON *cc_conditionToJSON(struct CC *cond);
 char *cc_conditionToJSONString(struct CC *cond);
 unsigned long cc_getCost(struct CC *cond);
 int cc_isFulfilled(struct CC *cond);
+static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength);
 
 
 /*
@@ -98,7 +99,6 @@ static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
 /*
  * Return codes
  */
-
 enum CCResult {
     CC_OK = 0,
     CC_Error = 1

@@ -43,6 +43,46 @@ static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
 }
 
 
+/*
+ * Signing data
+ */
+typedef struct CCEd25519SigningData {
+    char *msg;
+    size_t msgLength;
+    char *skpk;
+    int nSigned;
+} CCEd25519SigningData;
+
+
+/*
+ * Visitor that signs an ed25519 condition if it has a matching public key
+ */
+static int ed25519Sign(CC *cond, CCVisitor visitor) {
+    if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
+    CCEd25519SigningData *signing = (CCEd25519SigningData*) visitor.context;
+    if (0 != memcmp(cond->publicKey, signing->skpk+32, 32)) return 1;
+    if (!cond->signature) cond->signature = malloc(64);
+    int rc = crypto_sign_detached(cond->signature, NULL,
+            signing->msg, signing->msgLength, signing->skpk);
+    signing->nSigned++;
+    return rc == 0;
+}
+
+
+/*
+ * Sign ed25519 conditions in a tree
+ */
+static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength) {
+    char pk[32], skpk[64];
+    crypto_sign_ed25519_seed_keypair(pk, skpk, privateKey);
+
+    CCEd25519SigningData signing = {msg, msgLength, skpk, 0};
+    CCVisitor visitor = {&ed25519Sign, msg, msgLength, &signing};
+    cc_visit(cond, visitor);
+    return signing.nSigned;
+}
+
+
 static unsigned long ed25519Cost(CC *cond) {
     return 131072;
 }
@@ -65,7 +105,7 @@ static CC *ed25519FromJSON(cJSON *params, char *err) {
 
     cJSON *signature_item = cJSON_GetObjectItem(params, "signature");
     char *sig = NULL;
-    if (!cJSON_IsNull(signature_item)) {
+    if (signature_item && !cJSON_IsNull(signature_item)) {
         if (!cJSON_IsString(signature_item)) {
             strcpy(err, "signature must be null or a string");
             return NULL;
