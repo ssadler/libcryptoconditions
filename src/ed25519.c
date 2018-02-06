@@ -47,8 +47,6 @@ static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
  * Signing data
  */
 typedef struct CCEd25519SigningData {
-    char *msg;
-    size_t msgLength;
     char *skpk;
     int nSigned;
 } CCEd25519SigningData;
@@ -63,7 +61,7 @@ static int ed25519Sign(CC *cond, CCVisitor visitor) {
     if (0 != memcmp(cond->publicKey, signing->skpk+32, 32)) return 1;
     if (!cond->signature) cond->signature = malloc(64);
     int rc = crypto_sign_detached(cond->signature, NULL,
-            signing->msg, signing->msgLength, signing->skpk);
+            visitor.msg, visitor.msgLength, signing->skpk);
     signing->nSigned++;
     return rc == 0;
 }
@@ -76,7 +74,7 @@ static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size
     char pk[32], skpk[64];
     crypto_sign_ed25519_seed_keypair(pk, skpk, privateKey);
 
-    CCEd25519SigningData signing = {msg, msgLength, skpk, 0};
+    CCEd25519SigningData signing = {skpk, 0};
     CCVisitor visitor = {&ed25519Sign, msg, msgLength, &signing};
     cc_visit(cond, visitor);
     return signing.nSigned;
