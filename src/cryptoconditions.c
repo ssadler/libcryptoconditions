@@ -127,7 +127,8 @@ size_t cc_conditionBinary(CC *cond, char *buf) {
     asnCondition(cond, asn);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
     if (rc.encoded == -1) {
-        // TODO: crash
+        // TODO: make sure this never happens?
+        printf("CONDITION NOT ENCODED\n");
         return NULL;
     }
     ASN_STRUCT_FREE(asn_DEF_Condition, asn);
@@ -179,7 +180,6 @@ static cJSON *jsonCondition(CC *cond) {
 
     return root;
 }
-
 
 
 static cJSON *jsonFulfillment(CC *cond) {
@@ -279,7 +279,7 @@ CC *cc_conditionFromJSONString(const char *data, char *err) {
 }
 
 
-static cJSON *jsonMakeCondition(cJSON *params, char *err) {
+static cJSON *jsonEncodeCondition(cJSON *params, char *err) {
     CC *cond = cc_conditionFromJSON(params, err);
     cJSON *out = NULL;
     if (cond != NULL) {
@@ -290,7 +290,7 @@ static cJSON *jsonMakeCondition(cJSON *params, char *err) {
 }
 
 
-static cJSON *jsonMakeFulfillment(cJSON *params, char *err) {
+static cJSON *jsonEncodeFulfillment(cJSON *params, char *err) {
     CC *cond = cc_conditionFromJSON(params, err);
     cJSON *out = NULL;
     if (cond != NULL) {
@@ -511,6 +511,9 @@ static cJSON *jsonSignTreeEd25519(cJSON *params, char *err) {
 }
 
 
+static cJSON *jsonListMethods(cJSON *params, char *err);
+
+
 int cc_isFulfilled(CC *cond) {
     return cond->type->isFulfilled(cond);
 }
@@ -521,24 +524,40 @@ void cc_free(CC *cond) {
 }
 
 
-char *cc_jsonMethodNames[] = {
-    "makeCondition",
-    "makeFulfillment",
-    "decodeCondition",
-    "decodeFulfillment",
-    "verifyFulfillment",
-    "signTreeEd25519"
+typedef struct JsonMethod {
+    char *name;
+    cJSON* (*method)(cJSON *params, char *err);
+    char *description;
+} JsonMethod;
+
+
+static JsonMethod cc_jsonMethods[] = {
+    {"encodeCondition", &jsonEncodeCondition, "Encode a JSON condition to binary"},
+    {"decodeCondition", &jsonDecodeCondition, "Decode a binary condition"},
+    {"encodeFulfillment", &jsonEncodeFulfillment, "Encode a JSON condition to a fulfillment"},
+    {"decodeFulfillment", &jsonDecodeFulfillment, "Decode a binary fulfillment"},
+    {"verifyFulfillment", &jsonVerifyFulfillment, "Verify a fulfillment"},
+    {"signTreeEd25519", &jsonSignTreeEd25519, "Sign ed25519 condition nodes"},
+    {"listMethods", &jsonListMethods, "List available methods"}
 };
 
 
-cJSON *(*cc_jsonMethodImplementations[])(cJSON *params, char *err) = {
-    &jsonMakeCondition,
-    &jsonMakeFulfillment,
-    &jsonDecodeCondition,
-    &jsonDecodeFulfillment,
-    &jsonVerifyFulfillment,
-    &jsonSignTreeEd25519
-};
+static int nJsonMethods = sizeof(cc_jsonMethods) / sizeof(*cc_jsonMethods);
+
+
+static cJSON *jsonListMethods(cJSON *params, char *err) {
+    cJSON *list = cJSON_CreateArray();
+    for (int i=0; i<nJsonMethods; i++) {
+        JsonMethod method = cc_jsonMethods[i];
+        cJSON *item = cJSON_CreateObject();
+        cJSON_AddItemToObject(item, "name", cJSON_CreateString(method.name));
+        cJSON_AddItemToObject(item, "description", cJSON_CreateString(method.description));
+        cJSON_AddItemToArray(list, item);
+    }
+    cJSON *out = cJSON_CreateObject();
+    cJSON_AddItemToObject(out, "methods", list);
+    return out;
+}
 
 
 static cJSON* execJsonRPC(cJSON *root, char *err) {
@@ -553,11 +572,10 @@ static cJSON* execJsonRPC(cJSON *root, char *err) {
         return jsonErr("params is not an object");
     }
 
-    int nMethods = sizeof(cc_jsonMethodNames) / sizeof(*cc_jsonMethodNames);
-
-    for (int i=0; i<nMethods; i++) {
-        if (0 == strcmp(cc_jsonMethodNames[i], method_item->valuestring)) {
-            return cc_jsonMethodImplementations[i](params, err);
+    for (int i=0; i<nJsonMethods; i++) {
+        JsonMethod method = cc_jsonMethods[i];
+        if (0 == strcmp(method.name, method_item->valuestring)) {
+            return method.method(params, err);
         }
     }
 

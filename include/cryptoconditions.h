@@ -5,8 +5,8 @@
 #include <cJSON.h>
 
 
-#ifndef	CRYPTOCONDITIONS_H
-#define	CRYPTOCONDITIONS_H
+#ifndef CRYPTOCONDITIONS_H
+#define CRYPTOCONDITIONS_H
 
 #define BUF_SIZE 1024 * 1024
 
@@ -42,8 +42,8 @@ typedef struct CCType {
  * Crypto Condition
  */
 typedef struct CC {
-	CCType *type;
-	union {
+    CCType *type;
+    union {
         struct { char *publicKey, *signature; };
         struct { char *preimage; size_t preimageLength; };
         struct { long threshold; int size; struct CC **subconditions; };
@@ -95,9 +95,11 @@ static void mkAnon(Condition_t *asnCond, CC *cond);
 static void asnCondition(CC *cond, Condition_t *asn);
 static Condition_t *asnConditionNew(CC *cond);
 static Fulfillment_t *asnFulfillmentNew(CC *cond);
+static cJSON *jsonEncodeCondition(cJSON *params, char *err);
 static uint32_t getSubtypes(CC *cond);
-static cJSON *jsonMakeCondition(cJSON *params, char *err);
 static CCType *getTypeByAsnEnum(Condition_PR present);
+static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
+
 
 /*
  * Return codes

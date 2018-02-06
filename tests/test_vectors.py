@@ -40,9 +40,9 @@ all_vectors = {v0000, v0001, v0002, v0004, v0005, v0006, v0007, v0010,
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
-def test_condition(vectors_file):
+def test_encodeCondition(vectors_file):
     vectors = _read_vectors(vectors_file)
-    response = jsonRPC('makeCondition', vectors['json'])
+    response = jsonRPC('encodeCondition', vectors['json'])
     assert response == {
         'uri': vectors['conditionUri'],
         'bin': vectors['conditionBinary'],
@@ -50,16 +50,16 @@ def test_condition(vectors_file):
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
-def test_makeFulfillment(vectors_file):
+def test_encodeFulfillment(vectors_file):
     vectors = _read_vectors(vectors_file)
-    response = jsonRPC('makeFulfillment', vectors['json'])
+    response = jsonRPC('encodeFulfillment', vectors['json'])
     assert response == {
         'fulfillment': vectors['fulfillment'],
     }
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
-def test_verify_passes(vectors_file):
+def test_verifyFulfillment(vectors_file):
     vectors = _read_vectors(vectors_file)
     req = {
         'fulfillment': vectors['fulfillment'],
@@ -70,7 +70,7 @@ def test_verify_passes(vectors_file):
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
-def test_decode_fulfillment(vectors_file):
+def test_decodeFulfillment(vectors_file):
     vectors = _read_vectors(vectors_file)
     response = jsonRPC('decodeFulfillment', {
         'fulfillment': vectors['fulfillment'],
@@ -82,7 +82,7 @@ def test_decode_fulfillment(vectors_file):
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
-def test_decode_condition(vectors_file):
+def test_decodeCondition(vectors_file):
     vectors = _read_vectors(vectors_file)
     response = jsonRPC('decodeCondition', {
         'bin': vectors['conditionBinary'],
@@ -91,7 +91,7 @@ def test_decode_condition(vectors_file):
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
-def test_json_condition(vectors_file):
+def test_json_condition_json_parse(vectors_file):
     vectors = _read_vectors(vectors_file)
     err = ctypes.create_string_buffer(100)
     cc = so.cc_conditionFromJSONString(json.dumps(vectors['json']), err)
