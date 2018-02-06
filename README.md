@@ -68,6 +68,24 @@ cryptoconditions decodeCondition '{
 }
 ```
 
+### encodeFulfillment
+
+Encode a JSON condition to a binary fulfillment. The condition must be fulfilled, that is,
+it needs to have signatures present.
+
+```shell
+cryptoconditions encodeFulfillment '{
+{
+    "type": "ed25519-sha-256",
+    "publicKey": "E0x0Ws4GhWhO_zBoUyaLbuqCz6hDdq11Ft1Dgbe9y9k",
+    "signature": "jcuovSRpHwqiC781KzSM1Jd0Qtyfge0cMGttUdLOVdjJlSBFLTtgpinASOaJpd-VGjhSGWkp1hPWuMAAZq6pAg"
+}'
+{
+    "fulfillment": "pGSAIBNMdFrOBoVoTv8waFMmi27qgs-oQ3atdRbdQ4G3vcvZgUCNy6i9JGkfCqILvzUrNIzUl3RC3J-B7Rwwa21R0s5V2MmVIEUtO2CmKcBI5oml35UaOFIZaSnWE9a4wABmrqkC"
+}
+
+```
+
 ### decodeFulfillment
 
 Decode a binary fulfillment

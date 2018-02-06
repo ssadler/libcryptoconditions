@@ -124,7 +124,8 @@ size_t cc_conditionBinary(CC *cond, char *buf) {
     asnCondition(cond, asn);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
     if (rc.encoded == -1) {
-        // TODO: crash
+        // TODO: make sure this never happens?
+        printf("CONDITION NOT ENCODED\n");
         return NULL;
     }
     ASN_STRUCT_FREE(asn_DEF_Condition, asn);
@@ -136,7 +137,8 @@ size_t cc_fulfillmentBinary(CC *cond, char *buf) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, BUF_SIZE);
     if (rc.encoded == -1) {
-        // TODO: crash
+        // TODO: make sure this never happens?
+        printf("FULFILLMENT NOT ENCODED\n");
         return NULL;
     }
     ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
@@ -171,6 +173,19 @@ static cJSON *jsonCondition(CC *cond) {
 
     char *b64 = base64_encode(buf, conditionBinLength);
     cJSON_AddItemToObject(root, "bin", cJSON_CreateString(b64));
+    free(b64);
+
+    return root;
+}
+
+
+static cJSON *jsonFulfillment(CC *cond) {
+    char buf[1000];
+    size_t fulfillmentBinLength = cc_fulfillmentBinary(cond, buf);
+
+    cJSON *root = cJSON_CreateObject();
+    char *b64 = base64_encode(buf, fulfillmentBinLength);
+    cJSON_AddItemToObject(root, "fulfillment", cJSON_CreateString(b64));
     free(b64);
 
     return root;
@@ -266,6 +281,17 @@ static cJSON *jsonEncodeCondition(cJSON *params, char *err) {
     cJSON *out = NULL;
     if (cond != NULL) {
         out = jsonCondition(cond);
+        cc_free(cond);
+    }
+    return out;
+}
+
+
+static cJSON *jsonEncodeFulfillment(cJSON *params, char *err) {
+    CC *cond = cc_conditionFromJSON(params, err);
+    cJSON *out = NULL;
+    if (cond != NULL) {
+        out = jsonFulfillment(cond);
         cc_free(cond);
     }
     return out;
@@ -498,6 +524,7 @@ typedef struct JsonMethod {
 static JsonMethod cc_jsonMethods[] = {
     {"encodeCondition", &jsonEncodeCondition, "Encode a JSON condition to binary"},
     {"decodeCondition", &jsonDecodeCondition, "Decode a binary condition"},
+    {"encodeFulfillment", &jsonEncodeFulfillment, "Encode a JSON condition to a fulfillment"},
     {"decodeFulfillment", &jsonDecodeFulfillment, "Decode a binary fulfillment"},
     {"verifyFulfillment", &jsonVerifyFulfillment, "Verify a fulfillment"},
     {"signTreeEd25519", &jsonSignTreeEd25519, "Sign ed25519 condition nodes"},

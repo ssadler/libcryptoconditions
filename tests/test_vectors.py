@@ -45,6 +45,15 @@ def test_encodeCondition(vectors_file):
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
+def test_encodeFulfillment(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    response = jsonRPC('encodeFulfillment', vectors['json'])
+    assert response == {
+        'fulfillment': vectors['fulfillment'],
+    }
+
+
+@pytest.mark.parametrize('vectors_file', all_vectors)
 def test_verifyFulfillment(vectors_file):
     vectors = _read_vectors(vectors_file)
     req = {

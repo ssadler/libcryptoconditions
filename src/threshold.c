@@ -141,7 +141,7 @@ static Fulfillment_t *thresholdToFulfillment(CC *cond) {
     }
 
     fulfillment = calloc(1, sizeof(Fulfillment_t));
-    fulfillment->present = 2;
+    fulfillment->present = Fulfillment_PR_thresholdSha256;
     fulfillment->choice.thresholdSha256 = tf;
     return fulfillment;
 }

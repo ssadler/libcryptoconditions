@@ -13,12 +13,12 @@ so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
 so.jsonRPC.restype = c_char_p
 
 
-def jsonRPC(method, params):
+def jsonRPC(method, params, load=True):
     out = so.jsonRPC(json.dumps({
         'method': method,
         'params': params,
     }))
-    return json.loads(out)
+    return json.loads(out) if load else out
 
 
 def b16_to_b64(b16):
@@ -59,4 +59,4 @@ def get_parser():
 
 if __name__ == '__main__':
     args = get_parser().parse_args()
-    print(jsonRPC(args.method, args.request))
+    print(jsonRPC(args.method, args.request, load=False))

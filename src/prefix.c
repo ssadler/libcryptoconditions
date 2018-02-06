@@ -73,7 +73,7 @@ static Fulfillment_t *prefixToFulfillment(CC *cond) {
     pf->subfulfillment = ffill;
 
     ffill = calloc(1, sizeof(Fulfillment_t));
-    ffill->present = 1;
+    ffill->present = Fulfillment_PR_prefixSha256;
     ffill->choice.prefixSha256 = pf;
     return ffill;
 }
