@@ -10,12 +10,14 @@
 struct CCType cc_prefixType;
 
 
-static int prefixVerifyMessage(CC *cond, char *msg, size_t msgLength) {
-    size_t prefixedLength = cond->prefixLength + msgLength;
-    char *prefixed = calloc(1, prefixedLength);
+static int prefixVisitChildren(CC *cond, CCVisitor visitor) {
+    size_t prefixedLength = cond->prefixLength + visitor.msgLength;
+    char *prefixed = malloc(prefixedLength);
     memcpy(prefixed, cond->prefix, cond->prefixLength);
-    memcpy(prefixed + cond->prefixLength, msg, msgLength);
-    int res = cc_verifyMessage(cond->subcondition, prefixed, prefixedLength);
+    memcpy(prefixed + cond->prefixLength, visitor.msg, visitor.msgLength);
+    visitor.msg = prefixed;
+    visitor.msgLength = prefixedLength;
+    int res = cc_visit(cond->subcondition, visitor);
     free(prefixed);
     return res;
 }
@@ -137,4 +139,4 @@ static void prefixFree(CC *cond) {
 }
 
 
-struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVerifyMessage, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixToJSON, &prefixFromFulfillment, &prefixToFulfillment, &prefixIsFulfilled, &prefixFree };
+struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, 1, &prefixVisitChildren, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixToJSON, &prefixFromFulfillment, &prefixToFulfillment, &prefixIsFulfilled, &prefixFree };

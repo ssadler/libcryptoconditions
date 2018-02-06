@@ -189,4 +189,24 @@ int jsonVerifyAux(CC *cond, void *context) {
 }
 
 
+typedef struct CCAuxVerifyData {
+    VerifyAux verify;
+    void *context;
+} CCAuxVerifyData;
+
+
+int auxVisit(CC *cond, CCVisitor visitor) {
+    if (cond->type->typeId != cc_auxType.typeId) return 1;
+    CCAuxVerifyData *auxData = visitor.context;
+    return auxData->verify(cond, auxData->context);
+}
+
+
+int cc_verifyAux(CC *cond, VerifyAux verify, void *context) {
+    CCAuxVerifyData auxData = {verify, context};
+    CCVisitor visitor = {&auxVisit, "", 0, &auxData};
+    cc_visit(cond, visitor);
+}
+
+
 struct CCType cc_auxType = { 15, "aux-sha-256", Condition_PR_auxSha256, 0, &auxVerifyMessage, &auxFingerprint, &auxCost, &auxSubtypes, &auxFromJSON, &auxToJSON, &auxFromFulfillment, &auxToFulfillment, &auxIsFulfilled, &auxFree };

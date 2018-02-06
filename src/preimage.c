@@ -31,11 +31,6 @@ static void preimageToJSON(CC *cond, cJSON *params) {
 }
 
 
-static int preimageVerifyMessage(CC *cond, char *msg, size_t length) {
-    return 1; // no message to verify
-}
-
-
 static unsigned long preimageCost(CC *cond) {
     return (unsigned long) cond->preimageLength;
 }
@@ -82,4 +77,4 @@ static uint32_t preimageSubtypes(CC *cond) {
 }
 
 
-struct CCType cc_preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageVerifyMessage, &preimageFingerprint, &preimageCost, &preimageSubtypes, &preimageFromJSON, &preimageToJSON, &preimageFromFulfillment, &preimageToFulfillment, &preimageIsFulfilled, &preimageFree };
+struct CCType cc_preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, 0, &preimageFingerprint, &preimageCost, &preimageSubtypes, &preimageFromJSON, &preimageToJSON, &preimageFromFulfillment, &preimageToFulfillment, &preimageIsFulfilled, &preimageFree };

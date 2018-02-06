@@ -324,24 +324,12 @@ int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_
 }
 
 
-int cc_verifyMessage(CC *cond, char *msg, size_t length) {
-    return cond->type->verifyMessage(cond, msg, length);
-}
-
-
-int cc_verifyAux(CC *cond, VerifyAux verify, void *context) {
-    if (cond->type->typeId == cc_thresholdType.typeId) {
-        for (int i=0; i<cond->threshold; i++) {
-            if (!cc_verifyAux(cond->subconditions[i], verify, context)) {
-                return 0;
-            }
-        }
-    } else if (cond->type->typeId == cc_prefixType.typeId) {
-        return cc_verifyAux(cond->subcondition, verify, context);
-    } else if (cond->type->typeId == cc_auxType.typeId) {
-        return verify(cond, context);
+int cc_visit(CC *cond, CCVisitor visitor) {
+    int out = visitor.visit(cond, visitor);
+    if (out && cond->type->visitChildren) {
+        out = cond->type->visitChildren(cond, visitor);
     }
-    return 1;
+    return out;
 }
 
 
@@ -349,11 +337,12 @@ int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condB
               VerifyAux verifyAux, void *auxContext) {
     char targetBinary[1000];
     size_t binLength = cc_conditionBinary(cond, targetBinary);
+
     if (0 != memcmp(condBin, targetBinary, binLength)) {
         return 0;
     }
 
-    if (!cc_verifyMessage(cond, msg, msgLength)) {
+    if (!cc_ed25519VerifyTree(cond, msg, msgLength)) {
         return 0;
     }
 
@@ -475,6 +464,53 @@ static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
 }
 
 
+static cJSON *jsonSignTreeEd25519(cJSON *params, char *err) {
+    cJSON *condition_item = cJSON_GetObjectItem(params, "condition");
+    CC *cond = cc_conditionFromJSON(condition_item, err);
+    if (cond == NULL) {
+        return NULL;
+    }
+
+    cJSON *sk_b64_item = cJSON_GetObjectItem(params, "privateKey");
+    cJSON *msg_b64_item = cJSON_GetObjectItem(params, "message");
+
+    if (!cJSON_IsString(sk_b64_item)) {
+        strcpy(err, "privateKey must be a string");
+        return NULL;
+    }
+    if (!cJSON_IsString(msg_b64_item)) {
+        strcpy(err, "message must be a string");
+        return NULL;
+    }
+
+    size_t msg_len;
+    char *msg = base64_decode(msg_b64_item->valuestring, &msg_len);
+    if (!msg) {
+        strcpy(err, "message is not valid b64");
+        return;
+    }
+
+    size_t sk_len;
+    char *privateKey = base64_decode(sk_b64_item->valuestring, &sk_len);
+    if (!privateKey) {
+        strcpy(err, "privateKey is not valid b64");
+        return;
+    }
+
+    int nSigned = cc_signTreeEd25519(cond, privateKey, msg, msg_len);
+
+    cJSON *out = cJSON_CreateObject();
+    cJSON_AddItemToObject(out, "num_signed", cJSON_CreateNumber(nSigned));
+    cJSON_AddItemToObject(out, "condition", cc_conditionToJSON(cond));
+
+    cc_free(cond);
+    free(msg);
+    free(privateKey);
+
+    return out;
+}
+
+
 int cc_isFulfilled(CC *cond) {
     return cond->type->isFulfilled(cond);
 }
@@ -490,7 +526,8 @@ char *cc_jsonMethodNames[] = {
     "makeFulfillment",
     "decodeCondition",
     "decodeFulfillment",
-    "verifyFulfillment"
+    "verifyFulfillment",
+    "signTreeEd25519"
 };
 
 
@@ -499,7 +536,8 @@ cJSON *(*cc_jsonMethodImplementations[])(cJSON *params, char *err) = {
     &jsonMakeFulfillment,
     &jsonDecodeCondition,
     &jsonDecodeFulfillment,
-    &jsonVerifyFulfillment
+    &jsonVerifyFulfillment,
+    &jsonSignTreeEd25519
 };
 
 

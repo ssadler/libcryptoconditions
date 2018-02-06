@@ -30,9 +30,56 @@ static char *ed25519Fingerprint(CC *cond) {
 }
 
 
-static int ed25519VerifyMessage(CC *cond, char *msg, size_t length) {
-    int rc = crypto_sign_verify_detached(cond->signature, msg, length, cond->publicKey);
+static int ed25519Verify(CC *cond, CCVisitor visitor) {
+    if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
+    int rc = crypto_sign_verify_detached(cond->signature, visitor.msg, visitor.msgLength, cond->publicKey);
     return rc == 0;
+}
+
+
+static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
+    CCVisitor visitor = {&ed25519Verify, msg, msgLength, NULL};
+    return cc_visit(cond, visitor);
+}
+
+
+/*
+ * Signing data
+ */
+typedef struct CCEd25519SigningData {
+    char *msg;
+    size_t msgLength;
+    char *skpk;
+    int nSigned;
+} CCEd25519SigningData;
+
+
+/*
+ * Visitor that signs an ed25519 condition if it has a matching public key
+ */
+static int ed25519Sign(CC *cond, CCVisitor visitor) {
+    if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
+    CCEd25519SigningData *signing = (CCEd25519SigningData*) visitor.context;
+    if (0 != memcmp(cond->publicKey, signing->skpk+32, 32)) return 1;
+    if (!cond->signature) cond->signature = malloc(64);
+    int rc = crypto_sign_detached(cond->signature, NULL,
+            signing->msg, signing->msgLength, signing->skpk);
+    signing->nSigned++;
+    return rc == 0;
+}
+
+
+/*
+ * Sign ed25519 conditions in a tree
+ */
+static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength) {
+    char pk[32], skpk[64];
+    crypto_sign_ed25519_seed_keypair(pk, skpk, privateKey);
+
+    CCEd25519SigningData signing = {msg, msgLength, skpk, 0};
+    CCVisitor visitor = {&ed25519Sign, msg, msgLength, &signing};
+    cc_visit(cond, visitor);
+    return signing.nSigned;
 }
 
 
@@ -58,7 +105,7 @@ static CC *ed25519FromJSON(cJSON *params, char *err) {
 
     cJSON *signature_item = cJSON_GetObjectItem(params, "signature");
     char *sig = NULL;
-    if (!cJSON_IsNull(signature_item)) {
+    if (signature_item && !cJSON_IsNull(signature_item)) {
         if (!cJSON_IsString(signature_item)) {
             strcpy(err, "signature must be null or a string");
             return NULL;
@@ -132,4 +179,4 @@ static uint32_t ed25519Subtypes(CC *cond) {
 }
 
 
-struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519VerifyMessage, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519IsFulfilled, &ed25519Free };
+struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, 0, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519IsFulfilled, &ed25519Free };
