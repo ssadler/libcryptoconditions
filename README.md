@@ -16,6 +16,27 @@ make
 ./cryptoconditions.py --help
 ```
 
+## Embedding
+
+For the binary interface, see [cryptoconditions.h](./include/cryptoconditions.h).
+
+To embed in other languages, the easiest way may be to call the JSON RPC method via FFI. This is how it looks in Python:
+
+```python
+import json
+from ctypes import *
+
+so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
+so.jsonRPC.restype = c_char_p
+
+def call_cryptoconditions_rpc(method, params):
+    out = so.jsonRPC(json.dumps({
+        'method': method,
+        'params': params,
+    }))
+    return json.loads(out)
+```
+
 ## JSON methods
 
 ### encodeCondition
