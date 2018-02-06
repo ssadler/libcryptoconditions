@@ -59,4 +59,4 @@ def get_parser():
 
 if __name__ == '__main__':
     args = get_parser().parse_args()
-    print jsonRPC(args.method, args.request)
+    print(jsonRPC(args.method, args.request))
