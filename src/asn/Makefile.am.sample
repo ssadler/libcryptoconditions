@@ -110,5 +110,5 @@ clean:
 regen: regenerate-from-asn1-source
 
 regenerate-from-asn1-source:
-	asn1c ../../ext/crypto-conditions/src/asn1/CryptoConditions.asn
+	asn1c CryptoConditions.asn
 
