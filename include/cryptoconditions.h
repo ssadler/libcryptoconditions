@@ -92,7 +92,7 @@ static void asnCondition(CC *cond, Condition_t *asn);
 static Condition_t *asnConditionNew(CC *cond);
 static Fulfillment_t *asnFulfillmentNew(CC *cond);
 static uint32_t getSubtypes(CC *cond);
-static cJSON *jsonMakeCondition(cJSON *params, char *err);
+static cJSON *jsonEncodeCondition(cJSON *params, char *err);
 static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
 
 
