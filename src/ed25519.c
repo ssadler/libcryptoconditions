@@ -37,7 +37,7 @@ static int ed25519Verify(CC *cond, CCVisitor visitor) {
 }
 
 
-static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
+int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
     CCVisitor visitor = {&ed25519Verify, msg, msgLength, NULL};
     return cc_visit(cond, visitor);
 }
@@ -70,7 +70,7 @@ static int ed25519Sign(CC *cond, CCVisitor visitor) {
 /*
  * Sign ed25519 conditions in a tree
  */
-static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength) {
+int cc_signTreeEd25519(struct CC *cond, const char *privateKey, const char *msg, const size_t msgLength) {
     char pk[32], skpk[64];
     crypto_sign_ed25519_seed_keypair(pk, skpk, privateKey);
 

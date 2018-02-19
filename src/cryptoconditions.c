@@ -6,9 +6,9 @@
 #include "utils.h"
 #include "strings.h"
 #include "src/threshold.c"
-#include "src/ed25519.c"
 #include "src/prefix.c"
 #include "src/preimage.c"
+#include "src/ed25519.c"
 #include "src/anon.c"
 #include "src/aux.c"
 #include <cJSON.h>
@@ -304,7 +304,7 @@ static cJSON *jsonEncodeFulfillment(cJSON *params, char *err) {
 static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
     CCType *type = getTypeByAsnEnum(ffill->present);
     if (NULL == type) {
-        fprintf(stderr, "Unknown fulfillment type\n");
+        fprintf(stderr, "Unknown fulfillment type: %i\n", ffill->present);
         // TODO: panic?
     }
     type->fromFulfillment(ffill, cond);

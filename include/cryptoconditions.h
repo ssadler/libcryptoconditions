@@ -84,7 +84,8 @@ int cc_verify(struct CC *cond, char *msg, size_t msgLength, char *condBin, size_
         VerifyAux verifyAux, void *auxContext);
 void cc_free(struct CC *cond);
 int cc_verifyAux(CC *cond, VerifyAux fn, void *context);
-static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength);
+int cc_signTreeEd25519(struct CC *cond, const char *privateKey, const char *msg, const size_t msgLength);
+int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength);
 
 
 /*
@@ -99,7 +100,6 @@ static cJSON *jsonEncodeCondition(cJSON *params, char *err);
 static uint32_t getSubtypes(CC *cond);
 static CCType *getTypeByAsnEnum(Condition_PR present);
 static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
-
 
 /*
  * Return codes
