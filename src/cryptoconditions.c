@@ -1,4 +1,3 @@
-
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
 #include "asn/OCTET_STRING.h"
@@ -27,7 +26,7 @@ static struct CCType *typeRegistry[] = {
 static int typeRegistryLength = 5;
 
 
-static void appendUriSubtypes(uint32_t mask, char *buf) {
+void appendUriSubtypes(uint32_t mask, char *buf) {
     int append = 0;
     for (int i=0; i<32; i++) {
         if (mask & 1 << i) {
@@ -124,7 +123,6 @@ size_t cc_conditionBinary(CC *cond, char *buf) {
     asnCondition(cond, asn);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
     if (rc.encoded == -1) {
-        // TODO: make sure this never happens?
         printf("CONDITION NOT ENCODED\n");
         return NULL;
     }
@@ -137,7 +135,6 @@ size_t cc_fulfillmentBinary(CC *cond, char *buf) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, BUF_SIZE);
     if (rc.encoded == -1) {
-        // TODO: make sure this never happens?
         printf("FULFILLMENT NOT ENCODED\n");
         return NULL;
     }
@@ -301,8 +298,8 @@ static cJSON *jsonEncodeFulfillment(cJSON *params, char *err) {
 static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
     CCType *type = getTypeByAsnEnum(ffill->present);
     if (NULL == type) {
-        fprintf(stderr, "Unknown fulfillment type\n");
-        // TODO: panic?
+        fprintf(stderr, "Unknown fulfillment type: %i\n", ffill->present);
+        return NULL;
     }
     type->fromFulfillment(ffill, cond);
 }
@@ -387,19 +384,19 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
     size_t ffill_bin_len;
     char *ffill_bin = base64_decode(ffill_b64_item->valuestring, &ffill_bin_len);
 
+    CC *cond = cc_readFulfillmentBinary(ffill_bin, ffill_bin_len);
+    free(ffill_bin);
+
+    if (!cond) {
+        strcpy(err, "Invalid fulfillment payload");
+        return NULL;
+    }
+
     size_t msg_len;
     char *msg = base64_decode(msg_b64_item->valuestring, &msg_len);
 
     size_t cond_bin_len;
     char *cond_bin = base64_decode(cond_b64_item->valuestring, &cond_bin_len);
-
-    CC *cond = calloc(1, sizeof(CC));
-    
-    if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
-        strcpy(err, "Invalid fulfillment payload");
-        // TODO: free cond
-        return NULL;
-    }
 
     int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len);
     cc_free(cond);
