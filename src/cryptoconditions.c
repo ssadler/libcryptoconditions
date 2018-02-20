@@ -552,9 +552,8 @@ char *jsonRPC(char* input) {
     cJSON *root = cJSON_Parse(input);
     char err[1000] = "\0";
     cJSON *out = execJsonRPC(root, err);
-    char *res;
     if (NULL == out) out = jsonErr(err);
-    res = cJSON_Print(out);
+    char *res = cJSON_Print(out);
     cJSON_Delete(out);
     cJSON_Delete(root);
     return res;

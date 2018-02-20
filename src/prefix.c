@@ -27,9 +27,7 @@ static char *prefixFingerprint(CC *cond) {
     PrefixFingerprintContents_t *fp = calloc(1, sizeof(PrefixFingerprintContents_t));
     asnCondition(cond->subcondition, &fp->subcondition); // TODO: check asnCondition for safety
     fp->maxMessageLength = cond->maxMessageLength;
-    fp->prefix.buf = calloc(1, cond->prefixLength);
-    memcpy(fp->prefix.buf, cond->prefix, cond->prefixLength);
-    fp->prefix.size = cond->prefixLength;
+    OCTET_STRING_fromBuf(&fp->prefix, cond->prefix, cond->prefixLength);
     return hashFingerprintContents(&asn_DEF_PrefixFingerprintContents, fp);
 }
 
