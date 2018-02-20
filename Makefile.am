@@ -1,8 +1,11 @@
 
+AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include -I$(top_srcdir)/src/include
+
 lib_LTLIBRARIES=libcryptoconditions.la
 libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/utils.c \
 	src/include/cJSON.c \
+	src/include/sha256.c \
 	src/include/ed25519/src/keypair.c \
 	src/include/ed25519/src/seed.c \
 	src/include/ed25519/src/verify.c \
@@ -50,5 +53,3 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/asn/per_decoder.c \
 	src/asn/per_encoder.c \
 	src/asn/per_opentype.c
-libcryptoconditions_la_LIBADD = -lsodium
-AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include -I$(top_srcdir)/src/include

@@ -5,6 +5,7 @@
 #include <ctype.h>
 
 #include "include/cJSON.h"
+#include "include/sha256.h"
 #include "asn/asn_application.h"
 #include "cryptoconditions.h"
 
@@ -185,6 +186,6 @@ char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp) {
         return 0;
     }
     char *hash = malloc(32);
-    crypto_hash_sha256(hash, buf, rc.encoded);
+    sha256(buf, rc.encoded, hash);
     return hash;
 }

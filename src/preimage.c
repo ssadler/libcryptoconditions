@@ -3,6 +3,7 @@
 #include "asn/Fulfillment.h"
 #include "asn/OCTET_STRING.h"
 #include "include/cJSON.h"
+#include "include/sha256.h"
 #include "cryptoconditions.h"
 
 
@@ -38,7 +39,7 @@ static unsigned long preimageCost(CC *cond) {
 
 static char *preimageFingerprint(CC *cond) {
     char *hash = calloc(1, 32);
-    crypto_hash_sha256(hash, cond->preimage, cond->preimageLength);
+    sha256(cond->preimage, cond->preimageLength, hash);
     return hash;
 }
 

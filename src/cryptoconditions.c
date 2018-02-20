@@ -12,7 +12,6 @@
 #include "src/json_rpc.c"
 #include <cJSON.h>
 #include <malloc.h>
-#include <sodium.h>
 
 
 static struct CCType *typeRegistry[] = {
