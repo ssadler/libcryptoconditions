@@ -9,7 +9,8 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       prefixSha256     [1] CompoundSha256Condition,
       thresholdSha256  [2] CompoundSha256Condition,
       rsaSha256        [3] SimpleSha256Condition,
-      ed25519Sha256    [4] SimpleSha256Condition
+      ed25519Sha256    [4] SimpleSha256Condition,
+      secp256k1Sha256  [5] SimpleSha256Condition
     }
 
     SimpleSha256Condition ::= SEQUENCE {
@@ -28,7 +29,8 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       prefixSha256     (1),
       thresholdSha256  (2),
       rsaSha256        (3),
-      ed25519Sha256    (4)
+      ed25519Sha256    (4),
+      secp256k1Sha256  (5),
     }
     
     -- Fulfillments
@@ -38,7 +40,8 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       prefixSha256     [1] PrefixFulfillment,
       thresholdSha256  [2] ThresholdFulfillment,
       rsaSha256        [3] RsaSha256Fulfillment,
-      ed25519Sha256    [4] Ed25519Sha512Fulfillment
+      ed25519Sha256    [4] Ed25519Sha512Fulfillment,
+      secp256k1Sha256  [5] Secp256k1Fulfillment
     }
 
     PreimageFulfillment ::= SEQUENCE {
@@ -66,6 +69,10 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       signature            OCTET STRING (SIZE(64))
     }
 
+    Secp256k1Fulfillment ::= SEQUENCE {
+      publicKey            OCTET STRING (SIZE(33)),
+      signature            OCTET STRING (SIZE(64))
+
     -- Fingerprint Content
 
     -- The PREIMAGE-SHA-256 condition fingerprint content is not DER encoded
@@ -88,6 +95,10 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     
     Ed25519FingerprintContents ::= SEQUENCE {
       publicKey            OCTET STRING (SIZE(32))
+    }
+
+    Secp256k1FingerprintContents ::= SEQUENCE {
+      publicKey            OCTET STRING (SIZE(33))
     }
 
 END
