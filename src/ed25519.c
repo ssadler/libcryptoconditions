@@ -14,19 +14,10 @@ struct CCType cc_ed25519Type;
 
 
 static char *ed25519Fingerprint(CC *cond) {
+    char out[BUF_SIZE];
     Ed25519FingerprintContents_t *fp = calloc(1, sizeof(Ed25519FingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, 32);
-    
-    char out[BUF_SIZE];
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Ed25519FingerprintContents, fp, out, BUF_SIZE);
-    ASN_STRUCT_FREE(asn_DEF_Ed25519FingerprintContents, fp);
-
-    if (rc.encoded == -1) {
-        return NULL; // TODO assert
-    }
-    char *hash = calloc(1, 32);
-    crypto_hash_sha256(hash, out, rc.encoded);
-    return hash;
+    return hashFingerprintContents(&asn_DEF_Ed25519FingerprintContents, fp);
 }
 
 
@@ -136,12 +127,14 @@ static void ed25519ToJSON(CC *cond, cJSON *params) {
 }
 
 
-static void ed25519FromFulfillment(Fulfillment_t *ffill, CC *cond) {
+static CC *ed25519FromFulfillment(Fulfillment_t *ffill) {
+    CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_ed25519Type;
     cond->publicKey = malloc(32);
     memcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf, 32);
     cond->signature = malloc(64);
     memcpy(cond->signature, ffill->choice.ed25519Sha256.signature.buf, 64);
+    return cond;
 }
 
 

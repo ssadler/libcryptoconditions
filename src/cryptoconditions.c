@@ -45,10 +45,12 @@ void appendUriSubtypes(uint32_t mask, char *buf) {
 
 char *cc_conditionUri(CC *cond) {
     char *fp = cond->type->fingerprint(cond);
+    if (!fp) return NULL;
+
     char *encoded = base64_encode(fp, 32);
 
     char *out = calloc(1, 1000);
-    sprintf(out, "ni:///sha-256;%s?fpt=%s&cost=%u",
+    sprintf(out, "ni:///sha-256;%s?fpt=%s&cost=%lu",
             encoded, cond->type->name, cc_getCost(cond));
     
     if (cond->type->hasSubtypes) {
@@ -124,7 +126,7 @@ size_t cc_conditionBinary(CC *cond, char *buf) {
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
     if (rc.encoded == -1) {
         printf("CONDITION NOT ENCODED\n");
-        return NULL;
+        return 0;
     }
     ASN_STRUCT_FREE(asn_DEF_Condition, asn);
     return rc.encoded;
@@ -136,7 +138,7 @@ size_t cc_fulfillmentBinary(CC *cond, char *buf) {
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, BUF_SIZE);
     if (rc.encoded == -1) {
         printf("FULFILLMENT NOT ENCODED\n");
-        return NULL;
+        return 0;
     }
     ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
     return rc.encoded;
@@ -295,26 +297,25 @@ static cJSON *jsonEncodeFulfillment(cJSON *params, char *err) {
 }
 
 
-static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond) {
+static CC *fulfillmentToCC(Fulfillment_t *ffill) {
     CCType *type = getTypeByAsnEnum(ffill->present);
-    if (NULL == type) {
+    if (!type) {
         fprintf(stderr, "Unknown fulfillment type: %i\n", ffill->present);
-        return NULL;
+        return 0;
     }
-    type->fromFulfillment(ffill, cond);
+    return type->fromFulfillment(ffill);
 }
 
 
-int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_len) {
+CC *cc_readFulfillmentBinary(char *ffill_bin, size_t ffill_bin_len) {
     Fulfillment_t *ffill = 0;
-    asn_dec_rval_t rval;
-    rval = ber_decode(0, &asn_DEF_Fulfillment, (void **)&ffill, ffill_bin, ffill_bin_len);
+    CC *cond = 0;
+    asn_dec_rval_t rval = ber_decode(0, &asn_DEF_Fulfillment, (void **)&ffill, ffill_bin, ffill_bin_len);
     if (rval.code == RC_OK) {
-        fulfillmentToCC(ffill, cond);
+        cond = fulfillmentToCC(ffill);
+        ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
     }
-    ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
-    if (rval.code == RC_OK) return 0;
-    return 1;
+    return cond;
 }
 
 
@@ -340,17 +341,17 @@ int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condB
 }
 
 
-int cc_readConditionBinary(struct CC **cond, char *cond_bin, size_t length) {
+CC *cc_readConditionBinary(char *cond_bin, size_t length) {
     Condition_t *asnCond = 0;
     asn_dec_rval_t rval;
     rval = ber_decode(0, &asn_DEF_Condition, (void **)&asnCond, cond_bin, length);
-    if (rval.code == RC_OK) {
-        *cond = calloc(1, sizeof(CC));
-        mkAnon(asnCond, *cond);
+    if (rval.code != RC_OK) {
+        printf("Failed reading condition binary\n");
+        return NULL;
     }
+    CC *cond = mkAnon(asnCond);
     ASN_STRUCT_FREE(asn_DEF_Condition, asnCond);
-    if (rval.code == RC_OK) return 0;
-    return 1;
+    return cond;
 }
 
 
@@ -362,66 +363,46 @@ static cJSON *jsonErr(char *err) {
 
 
 static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
-    cJSON *cond_b64_item = cJSON_GetObjectItem(params, "condition");
-    cJSON *msg_b64_item = cJSON_GetObjectItem(params, "message");
-    cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
+    char *ffill_bin = 0, *msg = 0, *cond_bin = 0;
+    size_t ffill_bin_len, msg_len, cond_bin_len;
+    cJSON *out = 0;
 
-    if (!cJSON_IsString(cond_b64_item)) {
-        strcpy(err, "uri must be a string");
-        return NULL;
-    }
 
-    if (!cJSON_IsString(msg_b64_item)) {
-        strcpy(err, "message must be a string");
-        return NULL;
-    }
-
-    if (!cJSON_IsString(ffill_b64_item)) {
-        strcpy(err, "fulfillment must be a string");
-        return NULL;
-    }
-
-    size_t ffill_bin_len;
-    char *ffill_bin = base64_decode(ffill_b64_item->valuestring, &ffill_bin_len);
+    if (!(jsonGetBase64(params, "fulfillment", err, &ffill_bin, &ffill_bin_len) &&
+          jsonGetBase64(params, "message", err, &msg, &msg_len) &&
+          jsonGetBase64(params, "condition", err, &cond_bin, &cond_bin_len)))
+        goto END;
 
     CC *cond = cc_readFulfillmentBinary(ffill_bin, ffill_bin_len);
-    free(ffill_bin);
 
     if (!cond) {
         strcpy(err, "Invalid fulfillment payload");
-        return NULL;
+        goto END;
     }
-
-    size_t msg_len;
-    char *msg = base64_decode(msg_b64_item->valuestring, &msg_len);
-
-    size_t cond_bin_len;
-    char *cond_bin = base64_decode(cond_b64_item->valuestring, &cond_bin_len);
 
     int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len);
     cc_free(cond);
-    cJSON *out = cJSON_CreateObject();
+    out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));
+
+END:
+    free(ffill_bin); free(msg); free(cond_bin);
     return out;
 }
 
 
 static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
-    cJSON *ffill_b64_item = cJSON_GetObjectItem(params, "fulfillment");
-    if (!cJSON_IsString(ffill_b64_item)) {
-        strcpy(err, "fulfillment must be a string");
-        return NULL;
-    }
-
     size_t ffill_bin_len;
-    char *ffill_bin = base64_decode(ffill_b64_item->valuestring, &ffill_bin_len);
+    char *ffill_bin;
+    if (!jsonGetBase64(params, "fulfillment", err, &ffill_bin, &ffill_bin_len))
+        return NULL;
 
-    CC *cond = calloc(1, sizeof(CC));
-    if (cc_readFulfillmentBinary(cond, ffill_bin, ffill_bin_len) != 0) {
+    CC *cond = cc_readFulfillmentBinary(ffill_bin, ffill_bin_len);
+    free(ffill_bin);
+    if (!cond) {
         strcpy(err, "Invalid fulfillment payload");
         return NULL;
     }
-
     cJSON *out = jsonCondition(cond);
     cc_free(cond);
     return out;
@@ -429,18 +410,15 @@ static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
 
 
 static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
-    cJSON *conditionB64_item = cJSON_GetObjectItem(params, "bin");
-    if (!cJSON_IsString(conditionB64_item)) {
-        strcpy(err, "bin must be condition binary base64");
-        return NULL;
-    }
-
     size_t cond_bin_len;
-    char *condition_bin = base64_decode(conditionB64_item->valuestring, &cond_bin_len);
-    CC *cond = 0;
-    int rc = cc_readConditionBinary(&cond, condition_bin, cond_bin_len);
+    char *cond_bin;
+    if (!jsonGetBase64(params, "bin", err, &cond_bin, &cond_bin_len))
+        return NULL;
 
-    if (rc != 0) {
+    CC *cond = cc_readConditionBinary(cond_bin, cond_bin_len);
+    free(cond_bin);
+
+    if (!cond) {
         strcpy(err, "Invalid condition payload");
         return NULL;
     }
@@ -474,14 +452,14 @@ static cJSON *jsonSignTreeEd25519(cJSON *params, char *err) {
     char *msg = base64_decode(msg_b64_item->valuestring, &msg_len);
     if (!msg) {
         strcpy(err, "message is not valid b64");
-        return;
+        return 0;
     }
 
     size_t sk_len;
     char *privateKey = base64_decode(sk_b64_item->valuestring, &sk_len);
     if (!privateKey) {
         strcpy(err, "privateKey is not valid b64");
-        return;
+        return 0;
     }
 
     int nSigned = cc_signTreeEd25519(cond, privateKey, msg, msg_len);

@@ -43,12 +43,14 @@ static char *preimageFingerprint(CC *cond) {
 }
 
 
-static void preimageFromFulfillment(Fulfillment_t *ffill, CC *cond) {
+static CC *preimageFromFulfillment(Fulfillment_t *ffill) {
+    CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_preimageType;
     PreimageFulfillment_t p = ffill->choice.preimageSha256;
     cond->preimage = calloc(1, p.preimage.size);
     memcpy(cond->preimage, p.preimage.buf, p.preimage.size);
     cond->preimageLength = p.preimage.size;
+    return cond;
 }
 
 

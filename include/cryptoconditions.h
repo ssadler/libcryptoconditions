@@ -31,7 +31,7 @@ typedef struct CCType {
     uint32_t (*getSubtypes)(struct CC *cond);
     struct CC *(*fromJSON)(cJSON *params, char *err);
     void (*toJSON)(struct CC *cond, cJSON *params);
-    void (*fromFulfillment)(Fulfillment_t *ffill, struct CC *cond);
+    struct CC *(*fromFulfillment)(Fulfillment_t *ffill);
     Fulfillment_t *(*toFulfillment)(struct CC *cond);
     int (*isFulfilled)(struct CC *cond);
     void (*free)(struct CC *cond);
@@ -69,7 +69,7 @@ typedef struct CCVisitor {
  */
 size_t cc_conditionBinary(struct CC *cond, char *buf);
 size_t cc_fulfillmentBinary(struct CC *cond, char *buf);
-int cc_readFulfillmentBinary(struct CC *cond, char *ffill_bin, size_t ffill_bin_len);
+struct CC *cc_readFulfillmentBinary(char *ffill_bin, size_t ffill_bin_len);
 int cc_verify(struct CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength);
 int cc_visit(struct CC *cond, struct CCVisitor visitor);
 void cc_free(struct CC *cond);
@@ -87,13 +87,13 @@ static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size
  * Internal API
  */
 static uint32_t fromAsnSubtypes(ConditionTypes_t types);
-static void mkAnon(Condition_t *asnCond, CC *cond);
+static CC *mkAnon(Condition_t *asnCond);
 static void asnCondition(CC *cond, Condition_t *asn);
 static Condition_t *asnConditionNew(CC *cond);
 static Fulfillment_t *asnFulfillmentNew(CC *cond);
 static uint32_t getSubtypes(CC *cond);
 static cJSON *jsonEncodeCondition(cJSON *params, char *err);
-static void fulfillmentToCC(Fulfillment_t *ffill, CC *cond);
+static struct CC *fulfillmentToCC(Fulfillment_t *ffill);
 
 
 /*

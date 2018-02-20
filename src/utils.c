@@ -4,6 +4,10 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "include/cJSON.h"
+#include "asn/asn_application.h"
+#include "cryptoconditions.h"
+
 
 static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -131,4 +135,56 @@ void dumpStr(char *str, size_t len) {
         }
     }
     fprintf(stderr, "\n");
+}
+
+
+
+int checkString(cJSON *value, char *key, char *err) {
+    if (value == NULL) {
+        sprintf(err, "%s is required", key);
+        return 0;
+    }
+    if (!cJSON_IsString(value)) {
+        sprintf(err, "%s must be a string", key);
+        return 0;
+    }
+    return 1;
+}
+
+int checkDecodeBase64(cJSON *value, char *key, char *err, char **data, size_t *size) {
+    if (!checkString(value, key, err)) {
+        sprintf(err, "%s must be valid base64 string", key);
+        return 0;
+    }
+
+    *data = base64_decode(value->valuestring, size);
+    if (!*data) {
+        sprintf(err, "%s must be valid base64 string", key);
+        return 0;
+    }
+    return 1;
+}
+
+
+int jsonGetBase64(cJSON *params, char *key, char *err, char **data, size_t *size) {
+    cJSON *item = cJSON_GetObjectItem(params, key);
+    if (!item) {
+        sprintf(err, "%s is required", key);
+        return NULL;
+    }
+    return checkDecodeBase64(item, key, err, data, size);
+}
+
+
+char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp) {
+    char buf[BUF_SIZE];
+    asn_enc_rval_t rc = der_encode_to_buffer(asnType, fp, buf, BUF_SIZE);
+    ASN_STRUCT_FREE(*asnType, fp);
+    if (rc.encoded < 1) {
+        printf("Encoding fingerprint failed\n");
+        return 0;
+    }
+    char *hash = malloc(32);
+    crypto_hash_sha256(hash, buf, rc.encoded);
+    return hash;
 }

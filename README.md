@@ -16,6 +16,10 @@ make
 ./cryptoconditions.py --help
 ```
 
+## Status
+
+JSON interface not particularly safe. The rest is getting there.
+
 ## Embedding
 
 For the binary interface, see [cryptoconditions.h](./include/cryptoconditions.h).
