@@ -8,6 +8,7 @@
 #include "include/sha256.h"
 #include "asn/asn_application.h"
 #include "cryptoconditions.h"
+#include "internal.h"
 
 
 static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -171,7 +172,7 @@ int jsonGetBase64(cJSON *params, char *key, char *err, char **data, size_t *size
     cJSON *item = cJSON_GetObjectItem(params, key);
     if (!item) {
         sprintf(err, "%s is required", key);
-        return NULL;
+        return 0;
     }
     return checkDecodeBase64(item, key, err, data, size);
 }
