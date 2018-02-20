@@ -3,6 +3,16 @@ lib_LTLIBRARIES=libcryptoconditions.la
 libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/utils.c \
 	src/include/cJSON.c \
+	src/include/ed25519/src/keypair.c \
+	src/include/ed25519/src/seed.c \
+	src/include/ed25519/src/verify.c \
+	src/include/ed25519/src/sign.c \
+	src/include/ed25519/src/fe.c \
+	src/include/ed25519/src/sc.c \
+	src/include/ed25519/src/sha512.c \
+	src/include/ed25519/src/ge.c \
+	src/include/ed25519/src/add_scalar.c \
+	src/include/ed25519/src/key_exchange.c \
 	src/asn/Condition.c	\
 	src/asn/SimpleSha256Condition.c	\
 	src/asn/CompoundSha256Condition.c	\

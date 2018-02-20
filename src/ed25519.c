@@ -4,6 +4,7 @@
 #include "asn/Ed25519FingerprintContents.h"
 #include "asn/OCTET_STRING.h"
 #include "include/cJSON.h"
+#include "include/ed25519/src/ed25519.h"
 #include "cryptoconditions.h"
 
 
@@ -23,8 +24,8 @@ static char *ed25519Fingerprint(CC *cond) {
 
 static int ed25519Verify(CC *cond, CCVisitor visitor) {
     if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
-    int rc = crypto_sign_verify_detached(cond->signature, visitor.msg, visitor.msgLength, cond->publicKey);
-    return rc == 0;
+    // TODO: test failure mode: empty sig / null pointer
+    return ed25519_verify(cond->signature, visitor.msg, visitor.msgLength, cond->publicKey);
 }
 
 
@@ -38,6 +39,7 @@ static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
  * Signing data
  */
 typedef struct CCEd25519SigningData {
+    char *pk;
     char *skpk;
     int nSigned;
 } CCEd25519SigningData;
@@ -49,12 +51,12 @@ typedef struct CCEd25519SigningData {
 static int ed25519Sign(CC *cond, CCVisitor visitor) {
     if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
     CCEd25519SigningData *signing = (CCEd25519SigningData*) visitor.context;
-    if (0 != memcmp(cond->publicKey, signing->skpk+32, 32)) return 1;
+    if (0 != memcmp(cond->publicKey, signing->pk, 32)) return 1;
     if (!cond->signature) cond->signature = malloc(64);
-    int rc = crypto_sign_detached(cond->signature, NULL,
-            visitor.msg, visitor.msgLength, signing->skpk);
+    ed25519_sign(cond->signature, visitor.msg, visitor.msgLength,
+            signing->pk, signing->skpk);
     signing->nSigned++;
-    return rc == 0;
+    return 1;
 }
 
 
@@ -63,9 +65,9 @@ static int ed25519Sign(CC *cond, CCVisitor visitor) {
  */
 static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength) {
     char pk[32], skpk[64];
-    crypto_sign_ed25519_seed_keypair(pk, skpk, privateKey);
+    ed25519_create_keypair(pk, skpk, privateKey);
 
-    CCEd25519SigningData signing = {skpk, 0};
+    CCEd25519SigningData signing = {pk, skpk, 0};
     CCVisitor visitor = {&ed25519Sign, msg, msgLength, &signing};
     cc_visit(cond, visitor);
     return signing.nSigned;
