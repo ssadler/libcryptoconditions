@@ -1,3 +1,3 @@
 [submodule "ext/crypto-conditions"]
 	path = ext/crypto-conditions
-	url = git@github.com:libscott/crypto-conditions.git
+	url = http://github.com/libscott/crypto-conditions.git
