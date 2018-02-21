@@ -4,6 +4,7 @@
 #include "asn/Ed25519FingerprintContents.h"
 #include "asn/OCTET_STRING.h"
 #include "include/cJSON.h"
+#include "include/ed25519/src/ed25519.h"
 #include "cryptoconditions.h"
 
 
@@ -16,28 +17,18 @@ struct CCType cc_ed25519Type;
 static char *ed25519Fingerprint(CC *cond) {
     Ed25519FingerprintContents_t *fp = calloc(1, sizeof(Ed25519FingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, 32);
-    
-    char out[BUF_SIZE];
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Ed25519FingerprintContents, fp, out, BUF_SIZE);
-    ASN_STRUCT_FREE(asn_DEF_Ed25519FingerprintContents, fp);
-
-    if (rc.encoded == -1) {
-        return NULL; // TODO assert
-    }
-    char *hash = calloc(1, 32);
-    crypto_hash_sha256(hash, out, rc.encoded);
-    return hash;
+    return hashFingerprintContents(&asn_DEF_Ed25519FingerprintContents, fp);
 }
 
 
-static int ed25519Verify(CC *cond, CCVisitor visitor) {
+int ed25519Verify(CC *cond, CCVisitor visitor) {
     if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
-    int rc = crypto_sign_verify_detached(cond->signature, visitor.msg, visitor.msgLength, cond->publicKey);
-    return rc == 0;
+    // TODO: test failure mode: empty sig / null pointer
+    return ed25519_verify(cond->signature, visitor.msg, visitor.msgLength, cond->publicKey);
 }
 
 
-int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
+static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
     CCVisitor visitor = {&ed25519Verify, msg, msgLength, NULL};
     return cc_visit(cond, visitor);
 }
@@ -47,6 +38,7 @@ int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
  * Signing data
  */
 typedef struct CCEd25519SigningData {
+    char *pk;
     char *skpk;
     int nSigned;
 } CCEd25519SigningData;
@@ -58,23 +50,23 @@ typedef struct CCEd25519SigningData {
 static int ed25519Sign(CC *cond, CCVisitor visitor) {
     if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
     CCEd25519SigningData *signing = (CCEd25519SigningData*) visitor.context;
-    if (0 != memcmp(cond->publicKey, signing->skpk+32, 32)) return 1;
+    if (0 != memcmp(cond->publicKey, signing->pk, 32)) return 1;
     if (!cond->signature) cond->signature = malloc(64);
-    int rc = crypto_sign_detached(cond->signature, NULL,
-            visitor.msg, visitor.msgLength, signing->skpk);
+    ed25519_sign(cond->signature, visitor.msg, visitor.msgLength,
+            signing->pk, signing->skpk);
     signing->nSigned++;
-    return rc == 0;
+    return 1;
 }
 
 
 /*
  * Sign ed25519 conditions in a tree
  */
-int cc_signTreeEd25519(struct CC *cond, const char *privateKey, const char *msg, const size_t msgLength) {
+static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength) {
     char pk[32], skpk[64];
-    crypto_sign_ed25519_seed_keypair(pk, skpk, privateKey);
+    ed25519_create_keypair(pk, skpk, privateKey);
 
-    CCEd25519SigningData signing = {skpk, 0};
+    CCEd25519SigningData signing = {pk, skpk, 0};
     CCVisitor visitor = {&ed25519Sign, msg, msgLength, &signing};
     cc_visit(cond, visitor);
     return signing.nSigned;
@@ -136,12 +128,14 @@ static void ed25519ToJSON(CC *cond, cJSON *params) {
 }
 
 
-static void ed25519FromFulfillment(Fulfillment_t *ffill, CC *cond) {
+static CC *ed25519FromFulfillment(Fulfillment_t *ffill) {
+    CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_ed25519Type;
     cond->publicKey = malloc(32);
     memcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf, 32);
     cond->signature = malloc(64);
     memcpy(cond->signature, ffill->choice.ed25519Sha256.signature.buf, 64);
+    return cond;
 }
 
 

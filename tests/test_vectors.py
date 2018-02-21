@@ -6,10 +6,6 @@ import os.path
 from ctypes import *
 
 
-so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
-so.jsonRPC.restype = c_char_p
-
-
 v0000 = '0000_test-minimal-preimage'
 v0001 = '0001_test-minimal-prefix'
 v0002 = '0002_test-minimal-threshold'
@@ -109,12 +105,19 @@ def decode_base64(data):
 
     :param data: Base64 data as an ASCII byte string
     :returns: The decoded byte string.
-
     """
     missing_padding = len(data) % 4
     if missing_padding:
         data += '=' * (4 - missing_padding)
     return base64.urlsafe_b64decode(data)
+
+
+def encode_base64(data):
+    return base64.urlsafe_b64encode(data).rstrip('=')
+
+
+def b16_to_b64(b16):
+    return encode_base64(base64.b16decode(b16))
 
 
 def _read_vectors(name):
@@ -132,8 +135,12 @@ def _read_vectors(name):
     return vectors
 
 
+so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
+so.cc_jsonRPC.restype = c_char_p
+
+
 def jsonRPC(method, params):
-    out = so.jsonRPC(json.dumps({
+    out = so.cc_jsonRPC(json.dumps({
         'method': method,
         'params': params,
     }))

@@ -10,8 +10,13 @@
 struct CCType cc_anonType;
 
 
-static void mkAnon(Condition_t *asnCond, CC *cond) {
+static CC *mkAnon(Condition_t *asnCond) {
     CCType *realType = getTypeByAsnEnum(asnCond->present);
+    if (!realType) {
+        printf("Unknown ASN type: %i", asnCond->present);
+        return 0;
+    }
+    CC *cond = calloc(1, sizeof(CC));
     cond->type = (CCType*) calloc(1, sizeof(CCType));
     *cond->type = cc_anonType;
     strcpy(cond->type->name, realType->name);
@@ -24,11 +29,21 @@ static void mkAnon(Condition_t *asnCond, CC *cond) {
     if (realType->hasSubtypes) {
         cond->subtypes = fromAsnSubtypes(deets->subtypes);
     }
+    return cond;
+}
+
+
+
+static void anonToJSON(CC *cond, cJSON *params) {
+    char *b64 = base64_encode(cond->fingerprint, 32);
+    cJSON_AddItemToObject(params, "fingerprint", cJSON_CreateString(b64));
+    free(b64);
+    cJSON_AddItemToObject(params, "cost", cJSON_CreateNumber(cond->cost));
+    cJSON_AddItemToObject(params, "subtypes", cJSON_CreateNumber(cond->subtypes));
 }
 
 
 static int anonVerify(CC *cond, char *msg, size_t length) {
-    // TODO: log
     return 0;
 }
 
@@ -61,9 +76,9 @@ static void anonFree(CC *cond) {
 }
 
 
-static void anonIsFulfilled(CC *cond) {
+static int anonIsFulfilled(CC *cond) {
     return 0;
 }
 
 
-struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, &anonVerify, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };
+struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, NULL, &anonFingerprint, &anonCost, &anonSubtypes, NULL, &anonToJSON, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };

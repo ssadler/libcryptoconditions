@@ -25,22 +25,10 @@ static int prefixVisitChildren(CC *cond, CCVisitor visitor) {
 
 static char *prefixFingerprint(CC *cond) {
     PrefixFingerprintContents_t *fp = calloc(1, sizeof(PrefixFingerprintContents_t));
-    asnCondition(cond->subcondition, &fp->subcondition);
+    asnCondition(cond->subcondition, &fp->subcondition); // TODO: check asnCondition for safety
     fp->maxMessageLength = cond->maxMessageLength;
-    fp->prefix.buf = calloc(1, cond->prefixLength);
-    memcpy(fp->prefix.buf, cond->prefix, cond->prefixLength);
-    fp->prefix.size = cond->prefixLength;
-    /* Encode and hash the result */
-    char out[BUF_SIZE];
-    char *hash = calloc(1, 32);
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_PrefixFingerprintContents, fp, out, BUF_SIZE);
-    if (rc.encoded == -1) {
-        fprintf(stderr, "prefixFingerprint failed\n");
-        // TODO: log and quit
-    }
-    ASN_STRUCT_FREE(asn_DEF_PrefixFingerprintContents, fp);
-    crypto_hash_sha256(hash, out, rc.encoded);
-    return hash;
+    OCTET_STRING_fromBuf(&fp->prefix, cond->prefix, cond->prefixLength);
+    return hashFingerprintContents(&asn_DEF_PrefixFingerprintContents, fp);
 }
 
 
@@ -50,15 +38,18 @@ static unsigned long prefixCost(CC *cond) {
 }
 
 
-static void prefixFromFulfillment(Fulfillment_t *ffill, CC *cond) {
-    cond->type = &cc_prefixType;
+static CC *prefixFromFulfillment(Fulfillment_t *ffill) {
     PrefixFulfillment_t *p = ffill->choice.prefixSha256;
+    CC *sub = fulfillmentToCC(p->subfulfillment);
+    if (!sub) return 0;
+    CC *cond = calloc(1, sizeof(CC));
+    cond->type = &cc_prefixType;
     cond->maxMessageLength = p->maxMessageLength;
     cond->prefix = calloc(1, p->prefix.size);
     memcpy(cond->prefix, p->prefix.buf, p->prefix.size);
     cond->prefixLength = p->prefix.size;
-    cond->subcondition = calloc(1, sizeof(CC));
-    fulfillmentToCC(p->subfulfillment, cond->subcondition);
+    cond->subcondition = sub;
+    return cond;
 }
 
 
@@ -113,6 +104,7 @@ static CC *prefixFromJSON(cJSON *params, char *err) {
     }
     cond->subcondition = sub;
 
+    // unsafe
     cond->prefix = base64_decode(prefix_item->valuestring, &cond->prefixLength);
     return cond;
 }

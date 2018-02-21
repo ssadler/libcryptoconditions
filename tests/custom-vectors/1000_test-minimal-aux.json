@@ -2,13 +2,13 @@
   "json": {
     "type": "aux-sha-256",
     "method": "equals",
-    "condition": "1234",
-    "fulfillment": "1234"
+    "condition": "LTE",
+    "fulfillment": "LTE"
   },
   "cost": 131072,
   "subtypes": [],
   "fingerprintContents": "",
-  "fulfillment": "AF128006657175616C738103D76DF88203D76DF8",
+  "fulfillment": "AF108006657175616C7381022D3182022D31",
   "conditionBinary": "AF278020A81571E54C3362E1210EE828F0C2DD511F60573D34AC3C425D146077B0AB1AF78103020000",
   "conditionUri": "ni:///sha-256;qBVx5UwzYuEhDugo8MLdUR9gVz00rDxCXRRgd7CrGvc?fpt=aux-sha-256&cost=131072",
   "message": ""

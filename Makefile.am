@@ -1,8 +1,21 @@
 
+AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include -I$(top_srcdir)/src/include -Wall -Wno-pointer-sign
+
 lib_LTLIBRARIES=libcryptoconditions.la
 libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/utils.c \
 	src/include/cJSON.c \
+	src/include/sha256.c \
+	src/include/ed25519/src/keypair.c \
+	src/include/ed25519/src/seed.c \
+	src/include/ed25519/src/verify.c \
+	src/include/ed25519/src/sign.c \
+	src/include/ed25519/src/fe.c \
+	src/include/ed25519/src/sc.c \
+	src/include/ed25519/src/sha512.c \
+	src/include/ed25519/src/ge.c \
+	src/include/ed25519/src/add_scalar.c \
+	src/include/ed25519/src/key_exchange.c \
 	src/asn/Condition.c	\
 	src/asn/SimpleSha256Condition.c	\
 	src/asn/CompoundSha256Condition.c	\
@@ -42,5 +55,3 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/asn/per_decoder.c \
 	src/asn/per_encoder.c \
 	src/asn/per_opentype.c
-libcryptoconditions_la_LIBADD = -lsodium
-AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include -I$(top_srcdir)/src/include

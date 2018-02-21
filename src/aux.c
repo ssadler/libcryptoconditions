@@ -4,8 +4,10 @@
 #include "asn/AuxFulfillment.h"
 #include "asn/AuxFingerprintContents.h"
 #include "asn/OCTET_STRING.h"
-#include "include/cJSON.h"
 #include "cryptoconditions.h"
+#include "utils.h"
+#include "internal.h"
+#include "include/cJSON.h"
 
 
 
@@ -15,22 +17,7 @@ struct CCType cc_auxType;
 static char *auxFingerprint(CC *cond) {
     AuxFingerprintContents_t *fp = calloc(1, sizeof(AuxFingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->method, cond->method, 64);
-
-    char out[BUF_SIZE];
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_AuxFingerprintContents, fp, out, BUF_SIZE);
-    ASN_STRUCT_FREE(asn_DEF_AuxFingerprintContents, fp);
-
-    if (rc.encoded == -1) {
-        return NULL; // TODO assert
-    }
-    char *hash = calloc(1, 32);
-    crypto_hash_sha256(hash, out, rc.encoded);
-    return hash;
-}
-
-
-static int auxVerifyMessage(CC *cond, char *msg, size_t length) {
-    return 1; // no message to verify
+    return hashFingerprintContents(&asn_DEF_AuxFingerprintContents, fp);
 }
 
 
@@ -39,34 +26,9 @@ static unsigned long auxCost(CC *cond) {
 }
 
 
-int checkString(cJSON *value, char *key, char *err) {
-    if (value == NULL) {
-        sprintf(err, "%s is required", key);
-        return 0;
-    }
-    if (!cJSON_IsString(value)) {
-        sprintf(err, "%s must be a string", key);
-        return 0;
-    }
-    return 1;
-}
-
-int checkDecodeBase64(cJSON *value, char *key, char *err, char **data, size_t *size) {
-    if (!checkString(value, key, err)) {
-        return 0;
-    }
-
-    *data = base64_decode(value->valuestring, size);
-    if (!*data) {
-        sprintf(err, "%s must be valid base64", key);
-        return 0;
-    }
-    return 1;
-}
-
-
 static CC *auxFromJSON(cJSON *params, char *err) {
-    size_t binsz;
+    size_t conditionAuxLength, fulfillmentAuxLength;
+    char *conditionAux = 0, *fulfillmentAux = 0;
 
     cJSON *method_item = cJSON_GetObjectItem(params, "method");
     if (!checkString(method_item, "method", err)) {
@@ -78,17 +40,12 @@ static CC *auxFromJSON(cJSON *params, char *err) {
         return NULL;
     }
 
-    char *conditionAux;
-    size_t conditionAuxLength;
-    cJSON *condition_item = cJSON_GetObjectItem(params, "condition");
-    if (!checkDecodeBase64(condition_item, "condition", err, &conditionAux, &conditionAuxLength)) {
+    if (!jsonGetBase64(params, "condition", err, &conditionAux, &conditionAuxLength)) {
         return NULL;
     }
 
-    char *fulfillmentAux;
-    size_t fulfillmentAuxLength;
-    cJSON *fulfillment_item = cJSON_GetObjectItem(params, "fulfillment");
-    if (!checkDecodeBase64(fulfillment_item, "fulfillment", err, &fulfillmentAux, &fulfillmentAuxLength)) {
+    if (!jsonGetBase64(params, "fulfillment", err, &fulfillmentAux, &fulfillmentAuxLength)) {
+        free(conditionAux);
         return NULL;
     }
 
@@ -122,13 +79,14 @@ static void auxToJSON(CC *cond, cJSON *params) {
 }
 
 
-static void auxFromFulfillment(Fulfillment_t *ffill, CC *cond) {
+static CC *auxFromFulfillment(Fulfillment_t *ffill) {
+    CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_auxType;
 
     AuxFulfillment_t *aux = &ffill->choice.auxSha256;
 
     memcpy(cond->method, aux->method.buf, aux->method.size);
-    cond->method[aux->method.size] = NULL;
+    cond->method[aux->method.size] = 0;
 
     OCTET_STRING_t octets = aux->conditionAux;
     cond->conditionAuxLength = octets.size;
@@ -141,6 +99,7 @@ static void auxFromFulfillment(Fulfillment_t *ffill, CC *cond) {
         cond->fulfillmentAux = malloc(octets.size);
         memcpy(cond->fulfillmentAux, octets.buf, octets.size);
     }
+    return cond;
 }
 
 
@@ -205,8 +164,8 @@ int auxVisit(CC *cond, CCVisitor visitor) {
 int cc_verifyAux(CC *cond, VerifyAux verify, void *context) {
     CCAuxVerifyData auxData = {verify, context};
     CCVisitor visitor = {&auxVisit, "", 0, &auxData};
-    cc_visit(cond, visitor);
+    return cc_visit(cond, visitor);
 }
 
 
-struct CCType cc_auxType = { 15, "aux-sha-256", Condition_PR_auxSha256, 0, &auxVerifyMessage, &auxFingerprint, &auxCost, &auxSubtypes, &auxFromJSON, &auxToJSON, &auxFromFulfillment, &auxToFulfillment, &auxIsFulfilled, &auxFree };
+struct CCType cc_auxType = { 15, "aux-sha-256", Condition_PR_auxSha256, 0, 0, &auxFingerprint, &auxCost, &auxSubtypes, &auxFromJSON, &auxToJSON, &auxFromFulfillment, &auxToFulfillment, &auxIsFulfilled, &auxFree };

@@ -14,7 +14,7 @@ so.jsonRPC.restype = c_char_p
 
 
 def jsonRPC(method, params, load=True):
-    out = so.jsonRPC(json.dumps({
+    out = so.cc_jsonRPC(json.dumps({
         'method': method,
         'params': params,
     }))

@@ -7,7 +7,6 @@ Features shared object and easy to use JSON api, as well as a command line inter
 ## Quickstart
 
 ```shell
-sudo apt-get install libsodium18 # (Or otherwise install libsodium)
 git clone --recursive https://github.com/libscott/libcryptoconditions
 cd libcryptoconditions
 ./autogen.sh
@@ -15,6 +14,10 @@ cd libcryptoconditions
 make
 ./cryptoconditions.py --help
 ```
+
+## Status
+
+JSON interface not particularly safe. The rest is getting there.
 
 ## Embedding
 
