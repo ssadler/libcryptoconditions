@@ -14,7 +14,7 @@
 struct CCType cc_auxType;
 
 
-static char *auxFingerprint(CC *cond) {
+static unsigned char *auxFingerprint(CC *cond) {
     AuxFingerprintContents_t *fp = calloc(1, sizeof(AuxFingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->method, cond->method, 64);
     return hashFingerprintContents(&asn_DEF_AuxFingerprintContents, fp);
@@ -26,9 +26,9 @@ static unsigned long auxCost(CC *cond) {
 }
 
 
-static CC *auxFromJSON(cJSON *params, char *err) {
+static CC *auxFromJSON(cJSON *params, unsigned char *err) {
     size_t conditionAuxLength, fulfillmentAuxLength;
-    char *conditionAux = 0, *fulfillmentAux = 0;
+    unsigned char *conditionAux = 0, *fulfillmentAux = 0;
 
     cJSON *method_item = cJSON_GetObjectItem(params, "method");
     if (!checkString(method_item, "method", err)) {
@@ -66,7 +66,7 @@ static void auxToJSON(CC *cond, cJSON *params) {
     cJSON_AddItemToObject(params, "method", cJSON_CreateString(cond->method));
 
     // add condition
-    char *b64 = base64_encode(cond->conditionAux, cond->conditionAuxLength);
+    unsigned char *b64 = base64_encode(cond->conditionAux, cond->conditionAuxLength);
     cJSON_AddItemToObject(params, "condition", cJSON_CreateString(b64));
     free(b64);
 

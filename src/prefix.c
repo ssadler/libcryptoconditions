@@ -12,7 +12,7 @@ struct CCType cc_prefixType;
 
 static int prefixVisitChildren(CC *cond, CCVisitor visitor) {
     size_t prefixedLength = cond->prefixLength + visitor.msgLength;
-    char *prefixed = malloc(prefixedLength);
+    unsigned char *prefixed = malloc(prefixedLength);
     memcpy(prefixed, cond->prefix, cond->prefixLength);
     memcpy(prefixed + cond->prefixLength, visitor.msg, visitor.msgLength);
     visitor.msg = prefixed;
@@ -23,7 +23,7 @@ static int prefixVisitChildren(CC *cond, CCVisitor visitor) {
 }
 
 
-static char *prefixFingerprint(CC *cond) {
+static unsigned char *prefixFingerprint(CC *cond) {
     PrefixFingerprintContents_t *fp = calloc(1, sizeof(PrefixFingerprintContents_t));
     asnCondition(cond->subcondition, &fp->subcondition); // TODO: check asnCondition for safety
     fp->maxMessageLength = cond->maxMessageLength;
@@ -75,7 +75,7 @@ static uint32_t prefixSubtypes(CC *cond) {
 }
 
 
-static CC *prefixFromJSON(cJSON *params, char *err) {
+static CC *prefixFromJSON(cJSON *params, unsigned char *err) {
     cJSON *mml_item = cJSON_GetObjectItem(params, "maxMessageLength");
     cJSON *prefix_item = cJSON_GetObjectItem(params, "prefix");
     cJSON *subcond_item = cJSON_GetObjectItem(params, "subfulfillment");
@@ -112,7 +112,7 @@ static CC *prefixFromJSON(cJSON *params, char *err) {
 
 static void prefixToJSON(CC *cond, cJSON *params) {
     cJSON_AddNumberToObject(params, "maxMessageLength", (double)cond->maxMessageLength);
-    char *b64 = base64_encode(cond->prefix, cond->prefixLength);
+    unsigned char *b64 = base64_encode(cond->prefix, cond->prefixLength);
     cJSON_AddStringToObject(params, "prefix", b64);
     free(b64);
     cJSON_AddItemToObject(params, "subfulfillment", cc_conditionToJSON(cond->subcondition));

@@ -10,13 +10,13 @@
 struct CCType cc_preimageType;
 
 
-static CC *preimageFromJSON(cJSON *params, char *err) {
+static CC *preimageFromJSON(cJSON *params, unsigned char *err) {
     cJSON *preimage_item = cJSON_GetObjectItem(params, "preimage");
     if (!cJSON_IsString(preimage_item)) {
         strcpy(err, "preimage must be a string");
         return NULL;
     }
-    char *preimage_b64 = preimage_item->valuestring;
+    unsigned char *preimage_b64 = preimage_item->valuestring;
 
     CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_preimageType;
@@ -26,7 +26,7 @@ static CC *preimageFromJSON(cJSON *params, char *err) {
 
 
 static void preimageToJSON(CC *cond, cJSON *params) {
-    char *encoded = base64_encode(cond->preimage, cond->preimageLength);
+    unsigned char *encoded = base64_encode(cond->preimage, cond->preimageLength);
     cJSON_AddStringToObject(params, "preimage", encoded);
     free(encoded);
 }
@@ -37,8 +37,8 @@ static unsigned long preimageCost(CC *cond) {
 }
 
 
-static char *preimageFingerprint(CC *cond) {
-    char *hash = calloc(1, 32);
+static unsigned char *preimageFingerprint(CC *cond) {
+    unsigned char *hash = calloc(1, 32);
     sha256(cond->preimage, cond->preimageLength, hash);
     return hash;
 }

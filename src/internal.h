@@ -1,3 +1,5 @@
+#include "include/cJSON.h"
+#include "asn/asn_application.h"
 #include "cryptoconditions.h"
 
 #ifndef INTERNAL_H
@@ -13,34 +15,17 @@ extern "C" {
 
 
 /*
- * Crypto Condition
- */
-typedef struct CC {
-    struct CCType *type;
-    union {
-        struct { char *publicKey, *signature; };
-        struct { char *preimage; size_t preimageLength; };
-        struct { long threshold; int size; struct CC **subconditions; };
-        struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition;
-                 unsigned long maxMessageLength; };
-        struct { char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
-        struct { char method[64]; char *conditionAux; size_t conditionAuxLength; char *fulfillmentAux; size_t fulfillmentAuxLength; };
-    };
-} CC;
-
-
-/*
  * Condition Type */
 typedef struct CCType {
     uint8_t typeId;
-    char name[100];
+    unsigned char name[100];
     Condition_PR asnType;
     int hasSubtypes;
     int (*visitChildren)(struct CC *cond, struct CCVisitor visitor);
-    char *(*fingerprint)(struct CC *cond);
+    unsigned char *(*fingerprint)(struct CC *cond);
     unsigned long (*getCost)(struct CC *cond);
     uint32_t (*getSubtypes)(struct CC *cond);
-    struct CC *(*fromJSON)(cJSON *params, char *err);
+    struct CC *(*fromJSON)(cJSON *params, unsigned char *err);
     void (*toJSON)(struct CC *cond, cJSON *params);
     struct CC *(*fromFulfillment)(Fulfillment_t *ffill);
     Fulfillment_t *(*toFulfillment)(struct CC *cond);
@@ -48,6 +33,12 @@ typedef struct CCType {
     void (*free)(struct CC *cond);
 } CCType;
 
+
+/*
+ * Globals
+ */
+static struct CCType *typeRegistry[];
+static int typeRegistryLength;
 
 
 /*
@@ -59,13 +50,21 @@ static void asnCondition(CC *cond, Condition_t *asn);
 static Condition_t *asnConditionNew(CC *cond);
 static Fulfillment_t *asnFulfillmentNew(CC *cond);
 static uint32_t getSubtypes(CC *cond);
-static cJSON *jsonEncodeCondition(cJSON *params, char *err);
+static cJSON *jsonEncodeCondition(cJSON *params, unsigned char *err);
 static struct CC *fulfillmentToCC(Fulfillment_t *ffill);
 static struct CCType *getTypeByAsnEnum(Condition_PR present);
 
 
-static struct CCType *typeRegistry[];
-static int typeRegistryLength;
+/*
+ * Utility functions
+ */
+unsigned char *base64_encode(const unsigned char *data, size_t input_length);
+unsigned char *base64_decode(const unsigned char *data_, size_t *output_length);
+void dumpStr(unsigned char *str, size_t len);
+int checkString(cJSON *value, unsigned char *key, unsigned char *err);
+int checkDecodeBase64(cJSON *value, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
+int jsonGetBase64(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
+unsigned char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp);
 
 
 #ifdef __cplusplus

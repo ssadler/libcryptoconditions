@@ -14,7 +14,7 @@
 struct CCType cc_ed25519Type;
 
 
-static char *ed25519Fingerprint(CC *cond) {
+static unsigned char *ed25519Fingerprint(CC *cond) {
     Ed25519FingerprintContents_t *fp = calloc(1, sizeof(Ed25519FingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, 32);
     return hashFingerprintContents(&asn_DEF_Ed25519FingerprintContents, fp);
@@ -28,7 +28,7 @@ int ed25519Verify(CC *cond, CCVisitor visitor) {
 }
 
 
-static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
+static int cc_ed25519VerifyTree(CC *cond, unsigned char *msg, size_t msgLength) {
     CCVisitor visitor = {&ed25519Verify, msg, msgLength, NULL};
     return cc_visit(cond, visitor);
 }
@@ -38,8 +38,8 @@ static int cc_ed25519VerifyTree(CC *cond, char *msg, size_t msgLength) {
  * Signing data
  */
 typedef struct CCEd25519SigningData {
-    char *pk;
-    char *skpk;
+    unsigned char *pk;
+    unsigned char *skpk;
     int nSigned;
 } CCEd25519SigningData;
 
@@ -62,8 +62,8 @@ static int ed25519Sign(CC *cond, CCVisitor visitor) {
 /*
  * Sign ed25519 conditions in a tree
  */
-static int cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength) {
-    char pk[32], skpk[64];
+static int cc_signTreeEd25519(struct CC *cond, unsigned char *privateKey, unsigned char *msg, size_t msgLength) {
+    unsigned char pk[32], skpk[64];
     ed25519_create_keypair(pk, skpk, privateKey);
 
     CCEd25519SigningData signing = {pk, skpk, 0};
@@ -78,7 +78,7 @@ static unsigned long ed25519Cost(CC *cond) {
 }
 
 
-static CC *ed25519FromJSON(cJSON *params, char *err) {
+static CC *ed25519FromJSON(cJSON *params, unsigned char *err) {
     size_t binsz;
 
     cJSON *pk_item = cJSON_GetObjectItem(params, "publicKey");
@@ -86,7 +86,7 @@ static CC *ed25519FromJSON(cJSON *params, char *err) {
         strcpy(err, "publicKey must be a string");
         return NULL;
     }
-    char *pk = base64_decode(pk_item->valuestring, &binsz);
+    unsigned char *pk = base64_decode(pk_item->valuestring, &binsz);
     if (32 != binsz) {
         strcpy(err, "publicKey has incorrect length");
         free(pk);
@@ -94,7 +94,7 @@ static CC *ed25519FromJSON(cJSON *params, char *err) {
     }
 
     cJSON *signature_item = cJSON_GetObjectItem(params, "signature");
-    char *sig = NULL;
+    unsigned char *sig = NULL;
     if (signature_item && !cJSON_IsNull(signature_item)) {
         if (!cJSON_IsString(signature_item)) {
             strcpy(err, "signature must be null or a string");
@@ -117,7 +117,7 @@ static CC *ed25519FromJSON(cJSON *params, char *err) {
 
 
 static void ed25519ToJSON(CC *cond, cJSON *params) {
-    char *b64 = base64_encode(cond->publicKey, 32);
+    unsigned char *b64 = base64_encode(cond->publicKey, 32);
     cJSON_AddItemToObject(params, "publicKey", cJSON_CreateString(b64));
     free(b64);
     if (cond->signature) {
