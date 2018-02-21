@@ -17,11 +17,28 @@ struct CCType;
 
 
 /*
+ * Crypto Condition
+ */
+typedef struct CC {
+    struct CCType *type;
+    union {
+        struct { unsigned char *publicKey, *signature; };
+        struct { unsigned char *preimage; size_t preimageLength; };
+        struct { long threshold; int size; struct CC **subconditions; };
+        struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition;
+                 unsigned long maxMessageLength; };
+        struct { unsigned char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
+    };
+} CC;
+
+
+
+/*
  * Crypto Condition Visitor
  */
 typedef struct CCVisitor {
     int (*visit)(struct CC *cond, struct CCVisitor visitor);
-    char *msg;
+    unsigned char *msg;
     size_t msgLength;
     void *context;
 } CCVisitor;
@@ -30,22 +47,24 @@ typedef struct CCVisitor {
 /*
  * Public methods
  */
-char*         cc_conditionToJSONString(struct CC *cond);
-char*         cc_conditionUri(struct CC *cond);
-char*         cc_jsonRPC(char *request);
-int           cc_isFulfilled(struct CC *cond);
-int           cc_verify(struct CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength);
-int           cc_visit(struct CC *cond, struct CCVisitor visitor);
-size_t        cc_conditionBinary(struct CC *cond, char *buf);
-size_t        cc_fulfillmentBinary(struct CC *cond, char *buf, size_t bufLength);
-static int    cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength);
-struct CC*    cc_conditionFromJSON(cJSON *params, char *err);
-struct CC*    cc_conditionFromJSONString(const char *json, char *err);
-struct CC*    cc_readConditionBinary(char *cond_bin, size_t cond_bin_len);
-struct CC*    cc_readFulfillmentBinary(char *ffill_bin, size_t ffill_bin_len);
-struct cJSON* cc_conditionToJSON(struct CC *cond);
-unsigned long cc_getCost(struct CC *cond);
-void          cc_free(struct CC *cond);
+int             cc_isFulfilled(struct CC *cond);
+int             cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
+                        const unsigned char *condBin, size_t condBinLength);
+int             cc_visit(struct CC *cond, struct CCVisitor visitor);
+size_t          cc_conditionBinary(struct CC *cond, unsigned char *buf);
+size_t          cc_fulfillmentBinary(struct CC *cond, unsigned char *buf, size_t bufLength);
+static int      cc_signTreeEd25519(struct CC *cond, unsigned char *privateKey, unsigned char *msg,
+                        size_t msgLength);
+struct CC*      cc_conditionFromJSON(cJSON *params, unsigned char *err);
+struct CC*      cc_conditionFromJSONString(const unsigned char *json, unsigned char *err);
+struct CC*      cc_readConditionBinary(unsigned char *cond_bin, size_t cond_bin_len);
+struct CC*      cc_readFulfillmentBinary(unsigned char *ffill_bin, size_t ffill_bin_len);
+struct cJSON*   cc_conditionToJSON(struct CC *cond);
+unsigned char*  cc_conditionToJSONString(struct CC *cond);
+unsigned char*  cc_conditionUri(struct CC *cond);
+unsigned char*  cc_jsonRPC(unsigned char *request);
+unsigned long   cc_getCost(struct CC *cond);
+void            cc_free(struct CC *cond);
 
 
 #ifdef __cplusplus

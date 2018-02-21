@@ -25,7 +25,7 @@ static struct CCType *typeRegistry[] = {
 static int typeRegistryLength = 5;
 
 
-void appendUriSubtypes(uint32_t mask, char *buf) {
+void appendUriSubtypes(uint32_t mask, unsigned char *buf) {
     int append = 0;
     for (int i=0; i<32; i++) {
         if (mask & 1 << i) {
@@ -42,13 +42,13 @@ void appendUriSubtypes(uint32_t mask, char *buf) {
 }
 
 
-char *cc_conditionUri(CC *cond) {
-    char *fp = cond->type->fingerprint(cond);
+unsigned char *cc_conditionUri(CC *cond) {
+    unsigned char *fp = cond->type->fingerprint(cond);
     if (!fp) return NULL;
 
-    char *encoded = base64_encode(fp, 32);
+    unsigned char *encoded = base64_encode(fp, 32);
 
-    char *out = calloc(1, 1000);
+    unsigned char *out = calloc(1, 1000);
     sprintf(out, "ni:///sha-256;%s?fpt=%s&cost=%lu",
             encoded, cond->type->name, cc_getCost(cond));
     
@@ -63,8 +63,8 @@ char *cc_conditionUri(CC *cond) {
 }
 
 
-static char *fingerprintTypes(int mask) {
-    char *out = calloc(1, 1000);
+static unsigned char *fingerprintTypes(int mask) {
+    unsigned char *out = calloc(1, 1000);
     int append = 0;
     for (int i=0; i<typeRegistryLength; i++) {
         if (mask & 1 << i) {
@@ -119,7 +119,7 @@ static uint32_t fromAsnSubtypes(const ConditionTypes_t types) {
 }
 
 
-size_t cc_conditionBinary(CC *cond, char *buf) {
+size_t cc_conditionBinary(CC *cond, unsigned char *buf) {
     Condition_t *asn = calloc(1, sizeof(Condition_t));
     asnCondition(cond, asn);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
@@ -132,7 +132,7 @@ size_t cc_conditionBinary(CC *cond, char *buf) {
 }
 
 
-size_t cc_fulfillmentBinary(CC *cond, char *buf, size_t length) {
+size_t cc_fulfillmentBinary(CC *cond, unsigned char *buf, size_t length) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, length);
     if (rc.encoded == -1) {
@@ -196,7 +196,7 @@ static CC *fulfillmentToCC(Fulfillment_t *ffill) {
 }
 
 
-CC *cc_readFulfillmentBinary(char *ffill_bin, size_t ffill_bin_len) {
+CC *cc_readFulfillmentBinary(unsigned char *ffill_bin, size_t ffill_bin_len) {
     Fulfillment_t *ffill = 0;
     CC *cond = 0;
     asn_dec_rval_t rval = ber_decode(0, &asn_DEF_Fulfillment, (void **)&ffill, ffill_bin, ffill_bin_len);
@@ -217,9 +217,10 @@ int cc_visit(CC *cond, CCVisitor visitor) {
 }
 
 
-int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength) {
-    char targetBinary[1000];
-    size_t binLength = cc_conditionBinary(cond, targetBinary);
+int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
+              const unsigned char *condBin, size_t condBinLength) {
+    unsigned char targetBinary[1000];
+    const size_t binLength = cc_conditionBinary(cond, targetBinary);
     if (0 != memcmp(condBin, targetBinary, binLength)) {
         return 0;
     }
@@ -230,7 +231,7 @@ int cc_verify(CC *cond, char *msg, size_t msgLength, char *condBin, size_t condB
 }
 
 
-CC *cc_readConditionBinary(char *cond_bin, size_t length) {
+CC *cc_readConditionBinary(unsigned char *cond_bin, size_t length) {
     Condition_t *asnCond = 0;
     asn_dec_rval_t rval;
     rval = ber_decode(0, &asn_DEF_Condition, (void **)&asnCond, cond_bin, length);

@@ -35,7 +35,7 @@ static CC *mkAnon(Condition_t *asnCond) {
 
 
 static void anonToJSON(CC *cond, cJSON *params) {
-    char *b64 = base64_encode(cond->fingerprint, 32);
+    unsigned char *b64 = base64_encode(cond->fingerprint, 32);
     cJSON_AddItemToObject(params, "fingerprint", cJSON_CreateString(b64));
     free(b64);
     cJSON_AddItemToObject(params, "cost", cJSON_CreateNumber(cond->cost));
@@ -43,13 +43,13 @@ static void anonToJSON(CC *cond, cJSON *params) {
 }
 
 
-static int anonVerify(CC *cond, char *msg, size_t length) {
+static int anonVerify(CC *cond, unsigned char *msg, size_t length) {
     return 0;
 }
 
 
-static char *anonFingerprint(CC *cond) {
-    char *out = calloc(1, 32);
+static unsigned char *anonFingerprint(CC *cond) {
+    unsigned char *out = calloc(1, 32);
     memcpy(out, cond->fingerprint, 32);
     return out;
 }

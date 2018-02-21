@@ -56,7 +56,7 @@ static int thresholdVisitChildren(CC *cond, CCVisitor visitor) {
 
 static int cmpConditions(const void *a, const void *b) {
     /* Compare conditions by their ASN binary representation */
-    char bufa[BUF_SIZE], bufb[BUF_SIZE];
+    unsigned char bufa[BUF_SIZE], bufb[BUF_SIZE];
     asn_enc_rval_t r0 = der_encode_to_buffer(&asn_DEF_Condition, *(Condition_t**)a, bufa, BUF_SIZE);
     asn_enc_rval_t r1 = der_encode_to_buffer(&asn_DEF_Condition, *(Condition_t**)b, bufb, BUF_SIZE);
     int diff = r0.encoded - r1.encoded;
@@ -64,7 +64,7 @@ static int cmpConditions(const void *a, const void *b) {
 }
 
 
-static char *thresholdFingerprint(CC *cond) {
+static unsigned char *thresholdFingerprint(CC *cond) {
     /* Create fingerprint */
     ThresholdFingerprintContents_t *fp = calloc(1, sizeof(ThresholdFingerprintContents_t));
     fp->threshold = cond->threshold;
@@ -141,7 +141,7 @@ static Fulfillment_t *thresholdToFulfillment(CC *cond) {
 }
 
 
-static CC *thresholdFromJSON(cJSON *params, char *err) {
+static CC *thresholdFromJSON(cJSON *params, unsigned char *err) {
     cJSON *threshold_item = cJSON_GetObjectItem(params, "threshold");
     if (!cJSON_IsNumber(threshold_item)) {
         strcpy(err, "threshold must be a number");

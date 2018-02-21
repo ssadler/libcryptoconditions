@@ -11,7 +11,7 @@
 #include "internal.h"
 
 
-static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+static unsigned char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
                                 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
                                 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
@@ -19,7 +19,7 @@ static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
                                 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
                                 'w', 'x', 'y', 'z', '0', '1', '2', '3',
                                 '4', '5', '6', '7', '8', '9', '+', '/'};
-static char *decoding_table = NULL;
+static unsigned char *decoding_table = NULL;
 static int mod_table[] = {0, 2, 1};
 
 
@@ -30,11 +30,11 @@ void build_decoding_table() {
 }
 
 
-char *base64_encode(const unsigned char *data, size_t input_length) {
+unsigned char *base64_encode(const unsigned char *data, size_t input_length) {
 
     size_t output_length = 4 * ((input_length + 2) / 3);
 
-    char *encoded_data = malloc(output_length + 1);
+    unsigned char *encoded_data = malloc(output_length + 1);
     if (encoded_data == NULL) return NULL;
 
     for (int i = 0, j = 0; i < input_length;) {
@@ -68,14 +68,14 @@ char *base64_encode(const unsigned char *data, size_t input_length) {
 }
 
 
-unsigned char *base64_decode(const char *data_,
+unsigned char *base64_decode(const unsigned char *data_,
                              size_t *output_length) {
 
     if (decoding_table == NULL) build_decoding_table();
 
     size_t input_length = strlen(data_);
     int rem = input_length % 4;
-    char *data = malloc(input_length + (4-rem));
+    unsigned char *data = malloc(input_length + (4-rem));
     strcpy(data, data_);
 
     // for unpadded b64
@@ -125,7 +125,7 @@ void base64_cleanup() {
 }
 
 
-void dumpStr(char *str, size_t len) {
+void dumpStr(unsigned char *str, size_t len) {
     if (-1 == len) len = strlen(str);
     fprintf(stderr, "len:%i ", (int)len);
     for (int i=0; i<len; i++) {
@@ -141,7 +141,7 @@ void dumpStr(char *str, size_t len) {
 
 
 
-int checkString(cJSON *value, char *key, char *err) {
+int checkString(cJSON *value, unsigned char *key, unsigned char *err) {
     if (value == NULL) {
         sprintf(err, "%s is required", key);
         return 0;
@@ -153,7 +153,7 @@ int checkString(cJSON *value, char *key, char *err) {
     return 1;
 }
 
-int checkDecodeBase64(cJSON *value, char *key, char *err, char **data, size_t *size) {
+int checkDecodeBase64(cJSON *value, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size) {
     if (!checkString(value, key, err)) {
         sprintf(err, "%s must be valid base64 string", key);
         return 0;
@@ -168,7 +168,7 @@ int checkDecodeBase64(cJSON *value, char *key, char *err, char **data, size_t *s
 }
 
 
-int jsonGetBase64(cJSON *params, char *key, char *err, char **data, size_t *size) {
+int jsonGetBase64(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size) {
     cJSON *item = cJSON_GetObjectItem(params, key);
     if (!item) {
         sprintf(err, "%s is required", key);
@@ -178,15 +178,15 @@ int jsonGetBase64(cJSON *params, char *key, char *err, char **data, size_t *size
 }
 
 
-char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp) {
-    char buf[BUF_SIZE];
+unsigned char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp) {
+    unsigned char buf[BUF_SIZE];
     asn_enc_rval_t rc = der_encode_to_buffer(asnType, fp, buf, BUF_SIZE);
     ASN_STRUCT_FREE(*asnType, fp);
     if (rc.encoded < 1) {
         printf("Encoding fingerprint failed\n");
         return 0;
     }
-    char *hash = malloc(32);
+    unsigned char *hash = malloc(32);
     sha256(buf, rc.encoded, hash);
     return hash;
 }
