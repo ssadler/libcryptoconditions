@@ -103,6 +103,14 @@ def decode_base64(data):
     return base64.urlsafe_b64decode(data)
 
 
+def encode_base64(data):
+    return base64.urlsafe_b64encode(data).rstrip('=')
+
+
+def b16_to_b64(b16):
+    return encode_base64(base64.b16decode(b16))
+
+
 def _read_vectors(name):
     path = 'ext/crypto-conditions/test-vectors/valid/%s.json' % name
     vectors = json.load(open(path))
@@ -121,9 +129,5 @@ def jsonRPC(method, params):
         'params': params,
     }))
     return json.loads(out)
-
-
-def b16_to_b64(b16):
-    return base64.urlsafe_b64encode(base64.b16decode(b16)).rstrip('=')
 
 

@@ -22,8 +22,8 @@ static cJSON *jsonCondition(CC *cond) {
 
 
 static cJSON *jsonFulfillment(CC *cond) {
-    char buf[1000];
-    size_t fulfillmentBinLength = cc_fulfillmentBinary(cond, buf);
+    char buf[1000000];
+    size_t fulfillmentBinLength = cc_fulfillmentBinary(cond, buf, 1000000);
 
     cJSON *root = cJSON_CreateObject();
     char *b64 = base64_encode(buf, fulfillmentBinLength);
@@ -167,6 +167,7 @@ static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
     }
 
     cJSON *out = jsonCondition(cond);
+    cJSON_AddItemToObject(out, "condition", cc_conditionToJSON(cond));
     cc_free(cond);
     return out;
 }

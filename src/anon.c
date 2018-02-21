@@ -33,6 +33,16 @@ static CC *mkAnon(Condition_t *asnCond) {
 }
 
 
+
+static void anonToJSON(CC *cond, cJSON *params) {
+    char *b64 = base64_encode(cond->fingerprint, 32);
+    cJSON_AddItemToObject(params, "fingerprint", cJSON_CreateString(b64));
+    free(b64);
+    cJSON_AddItemToObject(params, "cost", cJSON_CreateNumber(cond->cost));
+    cJSON_AddItemToObject(params, "subtypes", cJSON_CreateNumber(cond->subtypes));
+}
+
+
 static int anonVerify(CC *cond, char *msg, size_t length) {
     return 0;
 }
@@ -71,4 +81,4 @@ static int anonIsFulfilled(CC *cond) {
 }
 
 
-struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, NULL, &anonFingerprint, &anonCost, &anonSubtypes, NULL, NULL, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };
+struct CCType cc_anonType = { -1, "anon  (a buffer large enough to accomodate any type name)", Condition_PR_NOTHING, 0, NULL, &anonFingerprint, &anonCost, &anonSubtypes, NULL, &anonToJSON, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };

@@ -37,7 +37,7 @@ int           cc_isFulfilled(struct CC *cond);
 int           cc_verify(struct CC *cond, char *msg, size_t msgLength, char *condBin, size_t condBinLength);
 int           cc_visit(struct CC *cond, struct CCVisitor visitor);
 size_t        cc_conditionBinary(struct CC *cond, char *buf);
-size_t        cc_fulfillmentBinary(struct CC *cond, char *buf);
+size_t        cc_fulfillmentBinary(struct CC *cond, char *buf, size_t bufLength);
 static int    cc_signTreeEd25519(struct CC *cond, char *privateKey, char *msg, size_t msgLength);
 struct CC*    cc_conditionFromJSON(cJSON *params, char *err);
 struct CC*    cc_conditionFromJSONString(const char *json, char *err);

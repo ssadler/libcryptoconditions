@@ -132,9 +132,9 @@ size_t cc_conditionBinary(CC *cond, char *buf) {
 }
 
 
-size_t cc_fulfillmentBinary(CC *cond, char *buf) {
+size_t cc_fulfillmentBinary(CC *cond, char *buf, size_t length) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond);
-    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, BUF_SIZE);
+    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, length);
     if (rc.encoded == -1) {
         printf("FULFILLMENT NOT ENCODED\n");
         return 0;
