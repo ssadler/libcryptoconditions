@@ -42,18 +42,28 @@ static asn_TYPE_member_t asn_MBR_AuxFingerprintContents_1[] = {
 		0,
 		"method"
 		},
+	{ ATF_NOFLAGS, 0, offsetof(struct AuxFingerprintContents, conditionAux),
+		(ASN_TAG_CLASS_CONTEXT | (1 << 2)),
+		-1,	/* IMPLICIT tag at current level */
+		&asn_DEF_OCTET_STRING,
+		0,	/* Defer constraints checking to the member type */
+		0,	/* PER is not compiled, use -gen-PER */
+		0,
+		"conditionAux"
+		},
 };
 static const ber_tlv_tag_t asn_DEF_AuxFingerprintContents_tags_1[] = {
 	(ASN_TAG_CLASS_UNIVERSAL | (16 << 2))
 };
 static const asn_TYPE_tag2member_t asn_MAP_AuxFingerprintContents_tag2el_1[] = {
-    { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 } /* method */
+    { (ASN_TAG_CLASS_CONTEXT | (0 << 2)), 0, 0, 0 }, /* method */
+    { (ASN_TAG_CLASS_CONTEXT | (1 << 2)), 1, 0, 0 } /* conditionAux */
 };
 static asn_SEQUENCE_specifics_t asn_SPC_AuxFingerprintContents_specs_1 = {
 	sizeof(struct AuxFingerprintContents),
 	offsetof(struct AuxFingerprintContents, _asn_ctx),
 	asn_MAP_AuxFingerprintContents_tag2el_1,
-	1,	/* Count of tags in the map */
+	2,	/* Count of tags in the map */
 	0, 0, 0,	/* Optional elements (not needed) */
 	-1,	/* Start extensions */
 	-1	/* Stop extensions */
@@ -78,7 +88,7 @@ asn_TYPE_descriptor_t asn_DEF_AuxFingerprintContents = {
 		/sizeof(asn_DEF_AuxFingerprintContents_tags_1[0]), /* 1 */
 	0,	/* No PER visible constraints */
 	asn_MBR_AuxFingerprintContents_1,
-	1,	/* Elements count */
+	2,	/* Elements count */
 	&asn_SPC_AuxFingerprintContents_specs_1	/* Additional specs */
 };
 

@@ -100,7 +100,8 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     }
     
     AuxFingerprintContents ::= SEQUENCE {
-      method               OCTET STRING (SIZE(64))
+      method               OCTET STRING (SIZE(64)),
+      conditionAux         OCTET STRING
     }
 
 END

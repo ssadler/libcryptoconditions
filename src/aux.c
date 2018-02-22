@@ -1,4 +1,3 @@
-
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
 #include "asn/AuxFulfillment.h"
@@ -10,13 +9,13 @@
 #include "include/cJSON.h"
 
 
-
 struct CCType cc_auxType;
 
 
 static unsigned char *auxFingerprint(CC *cond) {
     AuxFingerprintContents_t *fp = calloc(1, sizeof(AuxFingerprintContents_t));
-    OCTET_STRING_fromBuf(&fp->method, cond->method, 64);
+    OCTET_STRING_fromBuf(&fp->method, cond->method, strlen(cond->method));
+    OCTET_STRING_fromBuf(&fp->conditionAux, cond->conditionAux, cond->conditionAuxLength);
     return hashFingerprintContents(&asn_DEF_AuxFingerprintContents, fp);
 }
 

@@ -21,6 +21,7 @@ extern "C" {
 /* AuxFingerprintContents */
 typedef struct AuxFingerprintContents {
 	OCTET_STRING_t	 method;
+	OCTET_STRING_t	 conditionAux;
 	
 	/* Context for parsing across buffer boundaries */
 	asn_struct_ctx_t _asn_ctx;
