@@ -52,6 +52,15 @@ static asn_TYPE_member_t asn_MBR_Fulfillment_1[] = {
 		0,
 		"ed25519Sha256"
 		},
+	{ ATF_NOFLAGS, 0, offsetof(struct Fulfillment, choice.secp256k1Sha256),
+		(ASN_TAG_CLASS_CONTEXT | (5 << 2)),
+		-1,	/* IMPLICIT tag at current level */
+		&asn_DEF_Secp256k1Fulfillment,
+		0,	/* Defer constraints checking to the member type */
+		0,	/* PER is not compiled, use -gen-PER */
+		0,
+		"secp256k1Sha256"
+		},
 	{ ATF_NOFLAGS, 0, offsetof(struct Fulfillment, choice.auxSha256),
 		(ASN_TAG_CLASS_CONTEXT | (15 << 2)),
 		-1,	/* IMPLICIT tag at current level */
@@ -68,7 +77,8 @@ static const asn_TYPE_tag2member_t asn_MAP_Fulfillment_tag2el_1[] = {
     { (ASN_TAG_CLASS_CONTEXT | (2 << 2)), 2, 0, 0 }, /* thresholdSha256 */
     { (ASN_TAG_CLASS_CONTEXT | (3 << 2)), 3, 0, 0 }, /* rsaSha256 */
     { (ASN_TAG_CLASS_CONTEXT | (4 << 2)), 4, 0, 0 }, /* ed25519Sha256 */
-    { (ASN_TAG_CLASS_CONTEXT | (15 << 2)), 5, 0, 0 } /* auxSha256 */
+    { (ASN_TAG_CLASS_CONTEXT | (5 << 2)), 5, 0, 0 }, /* secp256k1Sha256 */
+    { (ASN_TAG_CLASS_CONTEXT | (15 << 2)), 6, 0, 0 } /* auxSha256 */
 };
 static asn_CHOICE_specifics_t asn_SPC_Fulfillment_specs_1 = {
 	sizeof(struct Fulfillment),
@@ -76,7 +86,7 @@ static asn_CHOICE_specifics_t asn_SPC_Fulfillment_specs_1 = {
 	offsetof(struct Fulfillment, present),
 	sizeof(((struct Fulfillment *)0)->present),
 	asn_MAP_Fulfillment_tag2el_1,
-	6,	/* Count of tags in the map */
+	7,	/* Count of tags in the map */
 	0,
 	-1	/* Extensions start */
 };
@@ -98,7 +108,7 @@ asn_TYPE_descriptor_t asn_DEF_Fulfillment = {
 	0,	/* No tags (count) */
 	0,	/* No PER visible constraints */
 	asn_MBR_Fulfillment_1,
-	6,	/* Elements count */
+	7,	/* Elements count */
 	&asn_SPC_Fulfillment_specs_1	/* Additional specs */
 };
 

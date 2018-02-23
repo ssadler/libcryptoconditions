@@ -27,6 +27,7 @@ typedef enum Condition_PR {
 	Condition_PR_thresholdSha256,
 	Condition_PR_rsaSha256,
 	Condition_PR_ed25519Sha256,
+	Condition_PR_secp256k1Sha256,
 	Condition_PR_auxSha256
 } Condition_PR;
 
@@ -39,6 +40,7 @@ typedef struct Condition {
 		CompoundSha256Condition_t	 thresholdSha256;
 		SimpleSha256Condition_t	 rsaSha256;
 		SimpleSha256Condition_t	 ed25519Sha256;
+		SimpleSha256Condition_t	 secp256k1Sha256;
 		SimpleSha256Condition_t	 auxSha256;
 	} choice;
 	

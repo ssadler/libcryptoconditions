@@ -168,13 +168,29 @@ int checkDecodeBase64(cJSON *value, unsigned char *key, unsigned char *err, unsi
 }
 
 
-int jsonGetBase64(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size) {
+int jsonGetBase64(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size)
+{
     cJSON *item = cJSON_GetObjectItem(params, key);
     if (!item) {
         sprintf(err, "%s is required", key);
         return 0;
     }
     return checkDecodeBase64(item, key, err, data, size);
+}
+
+
+int jsonGetBase64Optional(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size) {
+    cJSON *item = cJSON_GetObjectItem(params, key);
+    if (!item) {
+        return 1;
+    }
+    return checkDecodeBase64(item, key, err, data, size);
+}
+
+void jsonAddBase64(cJSON *params, unsigned char *key, unsigned char *bin, size_t size) {
+    unsigned char *b64 = base64_encode(bin, size);
+    cJSON_AddItemToObject(params, key, cJSON_CreateString(b64));
+    free(b64);
 }
 
 

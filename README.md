@@ -140,3 +140,26 @@ cryptoconditions signTreeEd25519 '{
     }
 }
 ```
+
+### signTreeSecp256k1
+
+Sign all secp256k1 nodes in a condition tree
+
+```shell
+cryptoconditions signTreeSecp256k1 '{
+    "condition": {
+        "type": "secp256k1-sha-256",
+        "publicKey": "AmkauD4tVL5-I7NN9hE_A8SlA0WdCIeJe_1Nac_km1hr",
+    },
+    "privateKey": "Bxwd5hOLZcTvzrR5Cupm3IV7TWHHl8nNLeO4UhYfRs4",
+    "message": "",
+}'
+{
+    "num_signed": 1,
+    "condition": {
+        "type": "secp256k1-sha-256",
+        "publicKey": "AmkauD4tVL5-I7NN9hE_A8SlA0WdCIeJe_1Nac_km1hr",
+        "signature": "LSQLzZo4cmt04KoCdoFcbIJX5MZ9CM6324SqkdqV1PppfUwquiWa7HD97hf4jdkdqU3ep8ZS9AU7zEJoUAl_Gg"
+    }
+}
+```

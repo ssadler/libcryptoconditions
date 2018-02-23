@@ -29,10 +29,11 @@ v0017 = '0017_test-advanced-notarized-receipt-multiple-notaries'
 
 # Custom test vectors
 v1000 = '1000_test-minimal-aux'
+v1001 = '1001_test-minimal-secp256k1'
 
 
 all_vectors = {v0000, v0001, v0002, v0004, v0005, v0006, v0007, v0010,
-               v0015, v0016, v0017, v1000}
+               v0015, v0016, v0017, v1000, v1001}
 
 
 @pytest.mark.parametrize('vectors_file', all_vectors)

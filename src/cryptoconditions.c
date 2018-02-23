@@ -4,14 +4,16 @@
 #include "asn/Fulfillment.h"
 #include "asn/OCTET_STRING.h"
 #include "cryptoconditions.h"
+#include "src/internal.h"
 #include "src/threshold.c"
 #include "src/prefix.c"
 #include "src/preimage.c"
 #include "src/ed25519.c"
+#include "src/secp256k1.c"
 #include "src/anon.c"
 #include "src/aux.c"
 #include "src/json_rpc.c"
-#include "src/internal.h"
+#include "src/utils.c"
 #include <cJSON.h>
 #include <malloc.h>
 
@@ -22,7 +24,8 @@ static struct CCType *typeRegistry[] = {
     &cc_thresholdType,
     NULL, /* &cc_rsaType */
     &cc_ed25519Type,
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 5-14 unused */
+    &cc_secp256k1Type,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 6-14 unused */
     &cc_auxType
 };
 
@@ -219,6 +222,12 @@ int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
         return 0;
     }
 
+    char msgHash[32];
+    sha256(msg, msgLength, msgHash);
+    if (!cc_secp256k1VerifyTreeMsg32(cond, msgHash)) {
+        return 0;
+    }
+
     if (!cc_verifyAux(cond, verifyAux, auxContext)) {
         return 0;
     }
@@ -246,7 +255,8 @@ int cc_isFulfilled(CC *cond) {
 
 
 void cc_free(CC *cond) {
-    cond->type->free(cond);
+    if (cond)
+        cond->type->free(cond);
 }
 
 

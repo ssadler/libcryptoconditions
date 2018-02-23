@@ -2,6 +2,8 @@
 #include <Fulfillment.h>
 #include <cJSON.h>
 
+#include "include/secp256k1/include/secp256k1.h"
+
 
 #ifndef CRYPTOCONDITIONS_H
 #define CRYPTOCONDITIONS_H
@@ -33,6 +35,7 @@ typedef struct CC {
         struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition;
                  unsigned long maxMessageLength; };
         struct { unsigned char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
+        struct { secp256k1_pubkey *secpPublicKey; secp256k1_ecdsa_signature *secpSignature; };
         struct { unsigned char method[64]; unsigned char *conditionAux; size_t conditionAuxLength; unsigned char *fulfillmentAux; size_t fulfillmentAuxLength; };
     };
 } CC;
@@ -62,6 +65,8 @@ size_t          cc_conditionBinary(struct CC *cond, unsigned char *buf);
 size_t          cc_fulfillmentBinary(struct CC *cond, unsigned char *buf, size_t bufLength);
 static int      cc_signTreeEd25519(struct CC *cond, unsigned char *privateKey, unsigned char *msg,
                         size_t msgLength);
+static int      cc_signTreeSecp256k1Msg32(struct CC *cond, unsigned char *privateKey, unsigned char *msg32);
+static int      cc_secp256k1VerifyTreeMsg32(CC *cond, unsigned char *msg32);
 struct CC*      cc_conditionFromJSON(cJSON *params, unsigned char *err);
 struct CC*      cc_conditionFromJSONString(const unsigned char *json, unsigned char *err);
 struct CC*      cc_readConditionBinary(unsigned char *cond_bin, size_t cond_bin_len);

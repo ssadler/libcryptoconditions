@@ -24,6 +24,7 @@ typedef enum ConditionTypes {
 	ConditionTypes_thresholdSha256	= 2,
 	ConditionTypes_rsaSha256	= 3,
 	ConditionTypes_ed25519Sha256	= 4,
+	ConditionTypes_secp256k1Sha256	= 5,
 	ConditionTypes_auxSha256	= 15
 } e_ConditionTypes;
 

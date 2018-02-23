@@ -1,9 +1,12 @@
-
-AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include -I$(top_srcdir)/src/include -Wall -Wno-pointer-sign
-
 lib_LTLIBRARIES=libcryptoconditions.la
-libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
-	src/utils.c \
+SUBDIRS = src/include/secp256k1
+
+AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include -I$(top_srcdir)/src/include \
+			-Wall -Wno-pointer-sign -Wno-discarded-qualifiers
+
+libcryptoconditions_la_LIBADD = src/include/secp256k1/libsecp256k1.la
+libcryptoconditions_la_SOURCES = \
+	src/cryptoconditions.c \
 	src/include/cJSON.c \
 	src/include/sha256.c \
 	src/include/ed25519/src/keypair.c \
@@ -32,6 +35,8 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/asn/Ed25519FingerprintContents.c \
 	src/asn/AuxFingerprintContents.c \
 	src/asn/AuxFulfillment.c \
+	src/asn/Secp256k1FingerprintContents.c \
+	src/asn/Secp256k1Fulfillment.c \
 	src/asn/INTEGER.c \
 	src/asn/NativeEnumerated.c \
 	src/asn/NativeInteger.c \

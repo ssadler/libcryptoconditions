@@ -60,11 +60,13 @@ static struct CCType *getTypeByAsnEnum(Condition_PR present);
  */
 unsigned char *base64_encode(const unsigned char *data, size_t input_length);
 unsigned char *base64_decode(const unsigned char *data_, size_t *output_length);
+unsigned char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp);
 void dumpStr(unsigned char *str, size_t len);
 int checkString(cJSON *value, unsigned char *key, unsigned char *err);
 int checkDecodeBase64(cJSON *value, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
 int jsonGetBase64(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
-unsigned char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp);
+int jsonGetBase64Optional(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
+void jsonAddBase64(cJSON *params, unsigned char *key, unsigned char *bin, size_t size);
 
 
 #ifdef __cplusplus
