@@ -110,7 +110,6 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, unsigned char *err) {
     size_t ffill_bin_len, msg_len, cond_bin_len;
     cJSON *out = 0;
 
-
     if (!(jsonGetBase64(params, "fulfillment", err, &ffill_bin, &ffill_bin_len) &&
           jsonGetBase64(params, "message", err, &msg, &msg_len) &&
           jsonGetBase64(params, "condition", err, &cond_bin, &cond_bin_len)))

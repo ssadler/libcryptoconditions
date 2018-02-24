@@ -2,6 +2,7 @@
 
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
@@ -16,47 +17,52 @@
 
 struct CCType cc_secp256k1Type;
 
+
 static const size_t SECP256K1_PK_SIZE = 33;
 static const size_t SECP256K1_SK_SIZE = 32;
 static const size_t SECP256K1_SIG_SIZE = 64;
 
 
-#define CTXOPEN(flags) secp256k1_context *ctx = makeSecp256k1Context(flags)
-#define CTXCLOSE()     secp256k1_context_destroy(ctx)
+secp256k1_context_t *ec_ctx_sign = 0, *ec_ctx_verify = 0;
+pthread_mutex_t cc_secp256k1ContextLock = PTHREAD_MUTEX_INITIALIZER;
 
 
-secp256k1_context *makeSecp256k1Context(unsigned int flags)
-{
-    secp256k1_context *ctx = 0;
+void lockSign() {
+    pthread_mutex_lock(&cc_secp256k1ContextLock);
+    if (!ec_ctx_sign) {
+        ec_ctx_sign = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+    }
     unsigned char ent[32];
     int read = syscall(SYS_getrandom, ent, 32, 0);
     if (read != 32) {
         fprintf(stderr, "Could not read 32 bytes entropy from system\n");
-        return NULL;
+        exit(1);
     }
-    ctx = secp256k1_context_create(flags);
-    if (!ctx) {
-        fprintf(stderr, "Could not create secp256k1 context\n");
-        return NULL;
+    if (!secp256k1_context_randomize(ec_ctx_sign, ent)) {
+        fprintf(stderr, "Could not randomize secp256k1 context\n");
+        exit(1);
     }
-    if (flags & SECP256K1_FLAGS_BIT_CONTEXT_SIGN) {
-        if (!secp256k1_context_randomize(ctx, ent)) {
-            fprintf(stderr, "Could not randomize secp256k1 context\n");
-            return NULL;
-        }
+}
+
+
+void unlockSign() {
+    pthread_mutex_unlock(&cc_secp256k1ContextLock);
+}
+
+
+void initVerify() {
+    if (!ec_ctx_verify) {
+        pthread_mutex_lock(&cc_secp256k1ContextLock);
+        if (!ec_ctx_verify)
+            ec_ctx_verify = secp256k1_context_create(SECP256K1_CONTEXT_VERIFY);
+        pthread_mutex_unlock(&cc_secp256k1ContextLock);
     }
-    return ctx;
 }
 
 
 static unsigned char *secp256k1Fingerprint(CC *cond) {
-    char pubKey[SECP256K1_PK_SIZE];
-    size_t ol = SECP256K1_PK_SIZE;
     Secp256k1FingerprintContents_t *fp = calloc(1, sizeof(Secp256k1FingerprintContents_t));
-    CTXOPEN(SECP256K1_CONTEXT_NONE);
-    secp256k1_ec_pubkey_serialize(ctx, pubKey, &ol, cond->secpPublicKey, SECP256K1_EC_COMPRESSED);
-    CTXCLOSE();
-    OCTET_STRING_fromBuf(&fp->publicKey, pubKey, SECP256K1_PK_SIZE);
+    OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, SECP256K1_PK_SIZE);
     return hashFingerprintContents(&asn_DEF_Secp256k1FingerprintContents, fp);
 }
 
@@ -64,10 +70,10 @@ static unsigned char *secp256k1Fingerprint(CC *cond) {
 int secp256k1Verify(CC *cond, CCVisitor visitor) {
     if (cond->type->typeId != cc_secp256k1Type.typeId) return 1;
     // TODO: test failure mode: empty sig / null pointer
-    CTXOPEN(SECP256K1_CONTEXT_VERIFY);
-    int rc = secp256k1_ecdsa_verify(ctx, cond->secpSignature, visitor.msg, cond->secpPublicKey);
-    CTXCLOSE();
-    return rc;
+    initVerify();
+    int rc = secp256k1_ecdsa_verify(ec_ctx_verify, visitor.msg, cond->signature, SECP256K1_SIG_SIZE,
+                cond->publicKey, SECP256K1_PK_SIZE);
+    return rc == 1;
 }
 
 
@@ -89,8 +95,8 @@ static int cc_secp256k1VerifyTreeMsg32(CC *cond, unsigned char *msg32) {
  * Signing data
  */
 typedef struct CCSecp256k1SigningData {
-    secp256k1_pubkey *pk;
-    char *sk;
+    unsigned char *pk;
+    unsigned char *sk;
     int nSigned;
 } CCSecp256k1SigningData;
 
@@ -101,11 +107,11 @@ typedef struct CCSecp256k1SigningData {
 static int secp256k1Sign(CC *cond, CCVisitor visitor) {
     if (cond->type->typeId != cc_secp256k1Type.typeId) return 1;
     CCSecp256k1SigningData *signing = (CCSecp256k1SigningData*) visitor.context;
-    if (0 != memcmp(cond->secpPublicKey, signing->pk, sizeof(secp256k1_pubkey))) return 1;
-    if (!cond->secpSignature) cond->secpSignature = calloc(1, sizeof(secp256k1_ecdsa_signature));
-    CTXOPEN(SECP256K1_CONTEXT_SIGN);
-    int rc = secp256k1_ecdsa_sign(ctx, cond->secpSignature, visitor.msg, signing->sk, NULL, NULL);
-    CTXCLOSE();
+    if (0 != memcmp(cond->publicKey, signing->pk, SECP256K1_PK_SIZE)) return 1;
+    if (!cond->signature) cond->signature = calloc(1, SECP256K1_SIG_SIZE);
+    lockSign();
+    int rc = secp256k1_ecdsa_sign_compact(ec_ctx_sign, visitor.msg, cond->signature, signing->sk, NULL, NULL, NULL);
+    unlockSign();
     if (rc) {
         signing->nSigned++;
         return 1;
@@ -123,12 +129,13 @@ static int cc_signTreeSecp256k1Msg32(struct CC *cond, unsigned char *privateKey,
         // how to combine message and prefix into 32 byte hash
         return 0;
     }
-    secp256k1_pubkey *publicKey = calloc(1, sizeof(secp256k1_pubkey));
+    unsigned char *publicKey = calloc(1, SECP256K1_PK_SIZE);
     CCSecp256k1SigningData signing = {publicKey, privateKey, 0};
     CCVisitor visitor = {&secp256k1Sign, msg32, 32, &signing};
-    CTXOPEN(SECP256K1_CONTEXT_SIGN);
-    int rc = secp256k1_ec_pubkey_create(ctx, publicKey, privateKey);
-    CTXCLOSE();
+    int ol = 0;
+    lockSign();
+    int rc = secp256k1_ec_pubkey_create(ec_ctx_sign, publicKey, &ol, privateKey, 1);
+    unlockSign();
     if (rc) cc_visit(cond, visitor);
     free(publicKey);
     return signing.nSigned;
@@ -141,28 +148,26 @@ static unsigned long secp256k1Cost(CC *cond) {
 
 
 static CC *cc_secp256k1Condition(const unsigned char *publicKey, const unsigned char *signature) {
-    CC *cond = 0;
-    secp256k1_pubkey *pk = calloc(1, sizeof(secp256k1_pubkey));
-    secp256k1_ecdsa_signature *sig = 0;
+    unsigned char *pk = 0, *sig = 0;
 
 
-    CTXOPEN(SECP256K1_CONTEXT_NONE);
-    int rc = secp256k1_ec_pubkey_parse(ctx, pk, publicKey, SECP256K1_PK_SIZE);
-    if (rc && signature) {
-        sig = calloc(1, sizeof(secp256k1_ecdsa_signature));
-        rc = secp256k1_ecdsa_signature_parse_compact(ctx, sig, signature);
+    initVerify();
+    int rc = secp256k1_ec_pubkey_verify(ec_ctx_verify, publicKey, SECP256K1_PK_SIZE);
+    if (!rc) {
+        return NULL;
     }
-    CTXCLOSE();
 
-    if (rc) {
-        cond = calloc(1, sizeof(CC));
-        cond->type = &cc_secp256k1Type;
-        cond->secpPublicKey = pk;
-        cond->secpSignature = sig;
-    } else {
-        free(pk);
-        free(sig);
+    pk = calloc(1, SECP256K1_PK_SIZE);
+    memcpy(pk, publicKey, SECP256K1_PK_SIZE);
+    if (signature) {
+        sig = calloc(1, SECP256K1_SIG_SIZE);
+        memcpy(sig, signature, SECP256K1_SIG_SIZE);
     }
+
+    CC *cond = calloc(1, sizeof(CC));
+    cond->type = &cc_secp256k1Type;
+    cond->publicKey = pk;
+    cond->signature = sig;
     return cond;
 }
 
@@ -173,10 +178,6 @@ static CC *secp256k1FromJSON(cJSON *params, unsigned char *err) {
     size_t pkSize, sigSize;
 
     if (!jsonGetBase64(params, "publicKey", err, &pk, &pkSize)) goto END;
-    if (SECP256K1_PK_SIZE != pkSize) {
-        strcpy(err, "publicKey has incorrect length");
-        goto END;
-    }
 
     if (!jsonGetBase64Optional(params, "signature", err, &sig, &sigSize)) goto END;
     if (sig && SECP256K1_SIG_SIZE != sigSize) {
@@ -185,6 +186,9 @@ static CC *secp256k1FromJSON(cJSON *params, unsigned char *err) {
     }
 
     cond = cc_secp256k1Condition(pk, sig);
+    if (!cond) {
+        strcpy(err, "invalid public key");
+    }
 END:
     free(pk);
     free(sig);
@@ -192,29 +196,10 @@ END:
 }
 
 
-void secp256k1Decode(CC *cond, unsigned char **pubKey, unsigned char **sig) {
-    size_t ol = SECP256K1_PK_SIZE;
-    *pubKey = malloc(ol), *sig = 0;
-    CTXOPEN(SECP256K1_CONTEXT_NONE);
-    secp256k1_ec_pubkey_serialize(ctx, *pubKey, &ol, cond->secpPublicKey, SECP256K1_EC_COMPRESSED);
-    if (cond->secpSignature) {
-        *sig = malloc(SECP256K1_SIG_SIZE);
-        secp256k1_ecdsa_signature_serialize_compact(ctx, *sig, cond->secpSignature);
-    }
-    CTXCLOSE();
-}
-
-
 static void secp256k1ToJSON(CC *cond, cJSON *params) {
-    unsigned char *pubKey, *sig;
-    secp256k1Decode(cond, &pubKey, &sig);
-
-    jsonAddBase64(params, "publicKey", pubKey, SECP256K1_PK_SIZE);
-    free(pubKey);
-
-    if (sig) {
-        jsonAddBase64(params, "signature", sig, SECP256K1_SIG_SIZE);
-        free(sig);
+    jsonAddBase64(params, "publicKey", cond->publicKey, SECP256K1_PK_SIZE);
+    if (cond->signature) {
+        jsonAddBase64(params, "signature", cond->signature, SECP256K1_SIG_SIZE);
     }
 }
 
@@ -226,7 +211,7 @@ static CC *secp256k1FromFulfillment(Fulfillment_t *ffill) {
 
 
 static Fulfillment_t *secp256k1ToFulfillment(CC *cond) {
-    if (!cond->secpSignature) {
+    if (!cond->signature) {
         return NULL;
     }
 
@@ -234,24 +219,21 @@ static Fulfillment_t *secp256k1ToFulfillment(CC *cond) {
     ffill->present = Fulfillment_PR_secp256k1Sha256;
     Secp256k1Fulfillment_t *sec = &ffill->choice.secp256k1Sha256;
 
-    unsigned char *pubKey, *sig;
-    secp256k1Decode(cond, &pubKey, &sig);
-    OCTET_STRING_fromBuf(&sec->publicKey, pubKey, SECP256K1_PK_SIZE);
-    OCTET_STRING_fromBuf(&sec->signature, sig, SECP256K1_SIG_SIZE);
-
+    OCTET_STRING_fromBuf(&sec->publicKey, cond->publicKey, SECP256K1_PK_SIZE);
+    OCTET_STRING_fromBuf(&sec->signature, cond->signature, SECP256K1_SIG_SIZE);
     return ffill;
 }
 
 
 int secp256k1IsFulfilled(CC *cond) {
-    return cond->secpSignature > 0;
+    return cond->signature > 0;
 }
 
 
 static void secp256k1Free(CC *cond) {
-    free(cond->secpPublicKey);
-    if (cond->secpSignature) {
-        free(cond->secpSignature);
+    free(cond->publicKey);
+    if (cond->signature) {
+        free(cond->signature);
     }
     free(cond);
 }

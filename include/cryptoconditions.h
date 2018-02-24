@@ -35,7 +35,6 @@ typedef struct CC {
         struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition;
                  unsigned long maxMessageLength; };
         struct { unsigned char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
-        struct { secp256k1_pubkey *secpPublicKey; secp256k1_ecdsa_signature *secpSignature; };
         struct { unsigned char method[64]; unsigned char *conditionAux; size_t conditionAuxLength; unsigned char *fulfillmentAux; size_t fulfillmentAuxLength; };
     };
 } CC;
