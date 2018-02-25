@@ -1,4 +1,3 @@
-
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
 #include "asn/Ed25519FingerprintContents.h"
@@ -6,9 +5,6 @@
 #include "include/cJSON.h"
 #include "include/ed25519/src/ed25519.h"
 #include "cryptoconditions.h"
-
-
-#define emptySig "0000000000000000000000000000000000000000000000000000000000000000"
 
 
 struct CCType cc_ed25519Type;
