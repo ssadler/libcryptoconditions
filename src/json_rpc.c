@@ -47,7 +47,7 @@ int jsonGet(cJSON *object, unsigned char *name, unsigned char *target) {
 
 
 CC *cc_conditionFromJSON(cJSON *params, unsigned char *err) {
-    if (!cJSON_IsObject(params)) {
+    if (!params || !cJSON_IsObject(params)) {
         strcpy(err, "Condition params must be an object");
         return NULL;
     }
@@ -219,7 +219,7 @@ static cJSON *jsonSignTreeEd25519(cJSON *params, unsigned char *err) {
 }
 
 
-cJSON *cc_conditionToJSON(CC *cond) {
+cJSON *cc_conditionToJSON(const CC *cond) {
     cJSON *params = cJSON_CreateObject();
     cJSON_AddItemToObject(params, "type", cJSON_CreateString(cond->type->name));
     cond->type->toJSON(cond, params);
@@ -227,7 +227,7 @@ cJSON *cc_conditionToJSON(CC *cond) {
 }
 
 
-unsigned char *cc_conditionToJSONString(CC *cond) {
+unsigned char *cc_conditionToJSONString(const CC *cond) {
     cJSON *params = cc_conditionToJSON(cond);
     unsigned char *out = cJSON_Print(params);
     cJSON_Delete(params);

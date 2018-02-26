@@ -1,7 +1,6 @@
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
 #include "asn/OCTET_STRING.h"
-#include "utils.h"
 #include "strings.h"
 #include "src/threshold.c"
 #include "src/ed25519.c"
@@ -43,7 +42,7 @@ void appendUriSubtypes(uint32_t mask, unsigned char *buf) {
 }
 
 
-unsigned char *cc_conditionUri(CC *cond) {
+unsigned char *cc_conditionUri(const CC *cond) {
     unsigned char *fp = cond->type->fingerprint(cond);
     if (!fp) return NULL;
 
@@ -104,7 +103,7 @@ static uint32_t fromAsnSubtypes(const ConditionTypes_t types) {
 }
 
 
-size_t cc_conditionBinary(CC *cond, unsigned char *buf) {
+size_t cc_conditionBinary(const CC *cond, unsigned char *buf) {
     Condition_t *asn = calloc(1, sizeof(Condition_t));
     asnCondition(cond, asn);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
@@ -117,7 +116,7 @@ size_t cc_conditionBinary(CC *cond, unsigned char *buf) {
 }
 
 
-size_t cc_fulfillmentBinary(CC *cond, unsigned char *buf, size_t length) {
+size_t cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t length) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, length);
     if (rc.encoded == -1) {
@@ -129,7 +128,7 @@ size_t cc_fulfillmentBinary(CC *cond, unsigned char *buf, size_t length) {
 }
 
 
-static void asnCondition(CC *cond, Condition_t *asn) {
+static void asnCondition(const CC *cond, Condition_t *asn) {
     asn->present = cond->type->asnType;
     
     // This may look a little weird - we dont have a reference here to the correct
@@ -144,19 +143,19 @@ static void asnCondition(CC *cond, Condition_t *asn) {
 }
 
 
-static Condition_t *asnConditionNew(CC *cond) {
+static Condition_t *asnConditionNew(const CC *cond) {
     Condition_t *asn = calloc(1, sizeof(Condition_t));
     asnCondition(cond, asn);
     return asn;
 }
 
 
-static Fulfillment_t *asnFulfillmentNew(CC *cond) {
+static Fulfillment_t *asnFulfillmentNew(const CC *cond) {
     return cond->type->toFulfillment(cond);
 }
 
 
-unsigned long cc_getCost(CC *cond) {
+unsigned long cc_getCost(const CC *cond) {
     return cond->type->getCost(cond);
 }
 
@@ -230,7 +229,7 @@ CC *cc_readConditionBinary(unsigned char *cond_bin, size_t length) {
 }
 
 
-int cc_isFulfilled(CC *cond) {
+int cc_isFulfilled(const CC *cond) {
     return cond->type->isFulfilled(cond);
 }
 

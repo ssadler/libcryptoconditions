@@ -141,7 +141,7 @@ void dumpStr(unsigned char *str, size_t len) {
 
 
 
-int checkString(cJSON *value, unsigned char *key, unsigned char *err) {
+int checkString(const cJSON *value, unsigned char *key, unsigned char *err) {
     if (value == NULL) {
         sprintf(err, "%s is required", key);
         return 0;
@@ -153,7 +153,7 @@ int checkString(cJSON *value, unsigned char *key, unsigned char *err) {
     return 1;
 }
 
-int checkDecodeBase64(cJSON *value, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size) {
+int checkDecodeBase64(const cJSON *value, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size) {
     if (!checkString(value, key, err)) {
         sprintf(err, "%s must be valid base64 string", key);
         return 0;
@@ -168,7 +168,7 @@ int checkDecodeBase64(cJSON *value, unsigned char *key, unsigned char *err, unsi
 }
 
 
-int jsonGetBase64(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size)
+int jsonGetBase64(const cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size)
 {
     cJSON *item = cJSON_GetObjectItem(params, key);
     if (!item) {
@@ -179,7 +179,7 @@ int jsonGetBase64(cJSON *params, unsigned char *key, unsigned char *err, unsigne
 }
 
 
-int jsonGetBase64Optional(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size) {
+int jsonGetBase64Optional(const cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size) {
     cJSON *item = cJSON_GetObjectItem(params, key);
     if (!item) {
         return 1;
