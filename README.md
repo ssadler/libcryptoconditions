@@ -1,4 +1,4 @@
-# libcryptoconditions
+# libcryptoconditions ![travis](https://travis-ci.org/libscott/libcryptoconditions.svg?branch=master)
 
 Interledger Crypto-Conditions in C, targeting spec [draft-thomas-crypto-conditions-03](https://tools.ietf.org/html/draft-thomas-crypto-conditions-03).
 
