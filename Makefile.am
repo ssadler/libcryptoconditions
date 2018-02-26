@@ -53,3 +53,11 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/asn/per_decoder.c \
 	src/asn/per_encoder.c \
 	src/asn/per_opentype.c
+
+test:
+	bash -c '[ -d .env ] || virtualenv .env'
+	.env/bin/pip install pytest
+	gdb -batch -ex run -ex bt --args .env/bin/python -m pytest -s -x -v 2>&1 | grep -v ^"No stack."$
+
+test-debug-interactive:
+	gdb -ex run --args python3 -m pytest -s -x -v

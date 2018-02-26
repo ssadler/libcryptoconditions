@@ -10,7 +10,7 @@
 struct CCType cc_ed25519Type;
 
 
-static unsigned char *ed25519Fingerprint(CC *cond) {
+static unsigned char *ed25519Fingerprint(const CC *cond) {
     Ed25519FingerprintContents_t *fp = calloc(1, sizeof(Ed25519FingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, 32);
     return hashFingerprintContents(&asn_DEF_Ed25519FingerprintContents, fp);
@@ -24,9 +24,9 @@ int ed25519Verify(CC *cond, CCVisitor visitor) {
 }
 
 
-static int cc_ed25519VerifyTree(CC *cond, unsigned char *msg, size_t msgLength) {
+static int cc_ed25519VerifyTree(const CC *cond, const unsigned char *msg, size_t msgLength) {
     CCVisitor visitor = {&ed25519Verify, msg, msgLength, NULL};
-    return cc_visit(cond, visitor);
+    return cc_visit((CC*) cond, visitor);
 }
 
 
@@ -58,23 +58,23 @@ static int ed25519Sign(CC *cond, CCVisitor visitor) {
 /*
  * Sign ed25519 conditions in a tree
  */
-static int cc_signTreeEd25519(struct CC *cond, unsigned char *privateKey, unsigned char *msg, size_t msgLength) {
+static int cc_signTreeEd25519(CC *cond, const unsigned char *privateKey, const unsigned char *msg, size_t msgLength) {
     unsigned char pk[32], skpk[64];
     ed25519_create_keypair(pk, skpk, privateKey);
 
     CCEd25519SigningData signing = {pk, skpk, 0};
-    CCVisitor visitor = {&ed25519Sign, msg, msgLength, &signing};
+    CCVisitor visitor = {&ed25519Sign, (unsigned char*)msg, msgLength, &signing};
     cc_visit(cond, visitor);
     return signing.nSigned;
 }
 
 
-static unsigned long ed25519Cost(CC *cond) {
+static unsigned long ed25519Cost(const CC *cond) {
     return 131072;
 }
 
 
-static CC *ed25519FromJSON(cJSON *params, unsigned char *err) {
+static CC *ed25519FromJSON(const cJSON *params, unsigned char *err) {
     size_t binsz;
 
     cJSON *pk_item = cJSON_GetObjectItem(params, "publicKey");
@@ -112,7 +112,7 @@ static CC *ed25519FromJSON(cJSON *params, unsigned char *err) {
 }
 
 
-static void ed25519ToJSON(CC *cond, cJSON *params) {
+static void ed25519ToJSON(const CC *cond, cJSON *params) {
     unsigned char *b64 = base64_encode(cond->publicKey, 32);
     cJSON_AddItemToObject(params, "publicKey", cJSON_CreateString(b64));
     free(b64);
@@ -124,7 +124,7 @@ static void ed25519ToJSON(CC *cond, cJSON *params) {
 }
 
 
-static CC *ed25519FromFulfillment(Fulfillment_t *ffill) {
+static CC *ed25519FromFulfillment(const Fulfillment_t *ffill) {
     CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_ed25519Type;
     cond->publicKey = malloc(32);
@@ -135,7 +135,7 @@ static CC *ed25519FromFulfillment(Fulfillment_t *ffill) {
 }
 
 
-static Fulfillment_t *ed25519ToFulfillment(CC *cond) {
+static Fulfillment_t *ed25519ToFulfillment(const CC *cond) {
     if (!cond->signature) {
         return NULL;
     }
@@ -148,7 +148,7 @@ static Fulfillment_t *ed25519ToFulfillment(CC *cond) {
 }
 
 
-int ed25519IsFulfilled(CC *cond) {
+int ed25519IsFulfilled(const CC *cond) {
     return cond->signature > 0;
 }
 
@@ -162,7 +162,7 @@ static void ed25519Free(CC *cond) {
 }
 
 
-static uint32_t ed25519Subtypes(CC *cond) {
+static uint32_t ed25519Subtypes(const CC *cond) {
     return 0;
 }
 

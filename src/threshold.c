@@ -6,13 +6,12 @@
 #include "include/cJSON.h"
 #include "cryptoconditions.h"
 #include "internal.h"
-#include "utils.h"
 
 
 struct CCType cc_thresholdType;
 
 
-static uint32_t thresholdSubtypes(CC *cond) {
+static uint32_t thresholdSubtypes(const CC *cond) {
     uint32_t mask = 0;
     for (int i=0; i<cond->size; i++) {
         mask |= getSubtypes(cond->subconditions[i]);
@@ -27,7 +26,7 @@ static int cmpCostDesc(const void *a, const void *b) {
 }
 
 
-static unsigned long thresholdCost(CC *cond) {
+static unsigned long thresholdCost(const CC *cond) {
     CC *sub;
     unsigned long *costs = calloc(1, cond->size * sizeof(unsigned long));
     for (int i=0; i<cond->size; i++) {
@@ -64,7 +63,7 @@ static int cmpConditions(const void *a, const void *b) {
 }
 
 
-static unsigned char *thresholdFingerprint(CC *cond) {
+static unsigned char *thresholdFingerprint(const CC *cond) {
     /* Create fingerprint */
     ThresholdFingerprintContents_t *fp = calloc(1, sizeof(ThresholdFingerprintContents_t));
     fp->threshold = cond->threshold;
@@ -76,7 +75,7 @@ static unsigned char *thresholdFingerprint(CC *cond) {
 }
 
 
-static CC *thresholdFromFulfillment(Fulfillment_t *ffill) {
+static CC *thresholdFromFulfillment(const Fulfillment_t *ffill) {
     ThresholdFulfillment_t *t = ffill->choice.thresholdSha256;
     int threshold = t->subfulfillments.list.count;
     int size = threshold + t->subconditions.list.count;
@@ -109,7 +108,7 @@ static int cmpByCostDesc(const void *c1, const void *c2) {
 }                                                         
 
 
-static Fulfillment_t *thresholdToFulfillment(CC *cond) {
+static Fulfillment_t *thresholdToFulfillment(const CC *cond) {
     CC *sub;
     Fulfillment_t *fulfillment;
 
@@ -141,7 +140,7 @@ static Fulfillment_t *thresholdToFulfillment(CC *cond) {
 }
 
 
-static CC *thresholdFromJSON(cJSON *params, unsigned char *err) {
+static CC *thresholdFromJSON(const cJSON *params, unsigned char *err) {
     cJSON *threshold_item = cJSON_GetObjectItem(params, "threshold");
     if (!cJSON_IsNumber(threshold_item)) {
         strcpy(err, "threshold must be a number");
@@ -171,7 +170,7 @@ static CC *thresholdFromJSON(cJSON *params, unsigned char *err) {
 }
 
 
-static void thresholdToJSON(CC *cond, cJSON *params) {
+static void thresholdToJSON(const CC *cond, cJSON *params) {
     cJSON *subs = cJSON_CreateArray();
     cJSON_AddNumberToObject(params, "threshold", cond->threshold);
     for (int i=0; i<cond->size; i++) {
@@ -181,7 +180,7 @@ static void thresholdToJSON(CC *cond, cJSON *params) {
 }
 
 
-static int thresholdIsFulfilled(CC *cond) {
+static int thresholdIsFulfilled(const CC *cond) {
     int nFulfilled = 0;
     for (int i=0; i<cond->threshold; i++) {
         if (!cc_isFulfilled(cond->subconditions[i])) {

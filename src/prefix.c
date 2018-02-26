@@ -23,7 +23,7 @@ static int prefixVisitChildren(CC *cond, CCVisitor visitor) {
 }
 
 
-static unsigned char *prefixFingerprint(CC *cond) {
+static unsigned char *prefixFingerprint(const CC *cond) {
     PrefixFingerprintContents_t *fp = calloc(1, sizeof(PrefixFingerprintContents_t));
     asnCondition(cond->subcondition, &fp->subcondition); // TODO: check asnCondition for safety
     fp->maxMessageLength = cond->maxMessageLength;
@@ -32,13 +32,13 @@ static unsigned char *prefixFingerprint(CC *cond) {
 }
 
 
-static unsigned long prefixCost(CC *cond) {
+static unsigned long prefixCost(const CC *cond) {
     return 1024 + cond->prefixLength + cond->maxMessageLength +
         cond->subcondition->type->getCost(cond->subcondition);
 }
 
 
-static CC *prefixFromFulfillment(Fulfillment_t *ffill) {
+static CC *prefixFromFulfillment(const Fulfillment_t *ffill) {
     PrefixFulfillment_t *p = ffill->choice.prefixSha256;
     CC *sub = fulfillmentToCC(p->subfulfillment);
     if (!sub) return 0;
@@ -53,7 +53,7 @@ static CC *prefixFromFulfillment(Fulfillment_t *ffill) {
 }
 
 
-static Fulfillment_t *prefixToFulfillment(CC *cond) {
+static Fulfillment_t *prefixToFulfillment(const CC *cond) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond->subcondition);
     if (!ffill) {
         return NULL;
@@ -70,47 +70,39 @@ static Fulfillment_t *prefixToFulfillment(CC *cond) {
 }
 
 
-static uint32_t prefixSubtypes(CC *cond) {
+static uint32_t prefixSubtypes(const CC *cond) {
     return getSubtypes(cond->subcondition) & ~(1 << cc_prefixType.typeId);
 }
 
 
-static CC *prefixFromJSON(cJSON *params, unsigned char *err) {
+static CC *prefixFromJSON(const cJSON *params, unsigned char *err) {
     cJSON *mml_item = cJSON_GetObjectItem(params, "maxMessageLength");
-    cJSON *prefix_item = cJSON_GetObjectItem(params, "prefix");
-    cJSON *subcond_item = cJSON_GetObjectItem(params, "subfulfillment");
-
     if (!cJSON_IsNumber(mml_item)) {
         strcpy(err, "maxMessageLength must be a number");
         return NULL;
     }
 
-    if (!cJSON_IsString(prefix_item)) {
-        strcpy(err, "prefix must be a string");
+    cJSON *subcond_item = cJSON_GetObjectItem(params, "subfulfillment");
+    CC *sub = cc_conditionFromJSON(subcond_item, err);
+    if (!sub) {
         return NULL;
     }
-
-    if (!cJSON_IsObject(subcond_item)) {
-        strcpy(err, "subfulfillment must be an oject");
-        return NULL;
-    }
-
+    
     CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_prefixType;
     cond->maxMessageLength = (unsigned long) mml_item->valuedouble;
-    CC *sub = cc_conditionFromJSON(subcond_item, err);
-    if (NULL == sub) {
+    cond->subcondition = sub;
+    
+    if (!jsonGetBase64(params, "prefix", err, &cond->prefix, &cond->prefixLength)) {
+        cc_free(cond);
         return NULL;
     }
-    cond->subcondition = sub;
-
-    // unsafe
-    cond->prefix = base64_decode(prefix_item->valuestring, &cond->prefixLength);
+    
     return cond;
 }
 
 
-static void prefixToJSON(CC *cond, cJSON *params) {
+static void prefixToJSON(const CC *cond, cJSON *params) {
     cJSON_AddNumberToObject(params, "maxMessageLength", (double)cond->maxMessageLength);
     unsigned char *b64 = base64_encode(cond->prefix, cond->prefixLength);
     cJSON_AddStringToObject(params, "prefix", b64);
@@ -119,7 +111,7 @@ static void prefixToJSON(CC *cond, cJSON *params) {
 }
 
 
-int prefixIsFulfilled(CC *cond) {
+int prefixIsFulfilled(const CC *cond) {
     return cc_isFulfilled(cond->subcondition);
 }
 

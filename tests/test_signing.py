@@ -1,6 +1,5 @@
 import json
 import base64
-import ed25519
 from test_vectors import jsonRPC
 
 

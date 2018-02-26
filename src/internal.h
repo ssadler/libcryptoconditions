@@ -21,15 +21,15 @@ typedef struct CCType {
     unsigned char name[100];
     Condition_PR asnType;
     int hasSubtypes;
-    int (*visitChildren)(struct CC *cond, struct CCVisitor visitor);
-    unsigned char *(*fingerprint)(struct CC *cond);
-    unsigned long (*getCost)(struct CC *cond);
-    uint32_t (*getSubtypes)(struct CC *cond);
-    struct CC *(*fromJSON)(cJSON *params, unsigned char *err);
-    void (*toJSON)(struct CC *cond, cJSON *params);
-    struct CC *(*fromFulfillment)(Fulfillment_t *ffill);
-    Fulfillment_t *(*toFulfillment)(struct CC *cond);
-    int (*isFulfilled)(struct CC *cond);
+    int (*visitChildren)(CC *cond, CCVisitor visitor);
+    unsigned char *(*fingerprint)(const CC *cond);
+    unsigned long (*getCost)(const CC *cond);
+    uint32_t (*getSubtypes)(const  CC *cond);
+    CC *(*fromJSON)(const cJSON *params, unsigned char *err);
+    void (*toJSON)(const CC *cond, cJSON *params);
+    CC *(*fromFulfillment)(const Fulfillment_t *ffill);
+    Fulfillment_t *(*toFulfillment)(const CC *cond);
+    int (*isFulfilled)(const CC *cond);
     void (*free)(struct CC *cond);
 } CCType;
 
@@ -45,10 +45,10 @@ static int typeRegistryLength;
  * Internal API
  */
 static uint32_t fromAsnSubtypes(ConditionTypes_t types);
-static CC *mkAnon(Condition_t *asnCond);
-static void asnCondition(CC *cond, Condition_t *asn);
-static Condition_t *asnConditionNew(CC *cond);
-static Fulfillment_t *asnFulfillmentNew(CC *cond);
+static CC *mkAnon(const Condition_t *asnCond);
+static void asnCondition(const CC *cond, Condition_t *asn);
+static Condition_t *asnConditionNew(const CC *cond);
+static Fulfillment_t *asnFulfillmentNew(const CC *cond);
 static uint32_t getSubtypes(CC *cond);
 static cJSON *jsonEncodeCondition(cJSON *params, unsigned char *err);
 static struct CC *fulfillmentToCC(Fulfillment_t *ffill);
@@ -62,10 +62,10 @@ unsigned char *base64_encode(const unsigned char *data, size_t input_length);
 unsigned char *base64_decode(const unsigned char *data_, size_t *output_length);
 unsigned char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp);
 void dumpStr(unsigned char *str, size_t len);
-int checkString(cJSON *value, unsigned char *key, unsigned char *err);
-int checkDecodeBase64(cJSON *value, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
-int jsonGetBase64(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
-int jsonGetBase64Optional(cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
+int checkString(const cJSON *value, unsigned char *key, unsigned char *err);
+int checkDecodeBase64(const cJSON *value, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
+int jsonGetBase64(const cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
+int jsonGetBase64Optional(const cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
 void jsonAddBase64(cJSON *params, unsigned char *key, unsigned char *bin, size_t size);
 
 

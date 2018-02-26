@@ -34,31 +34,19 @@ static cJSON *jsonFulfillment(CC *cond) {
 }
 
 
-int jsonGet(cJSON *object, unsigned char *name, unsigned char *target) {
-    cJSON *item = cJSON_GetObjectItem(object, name);
-    if (!cJSON_IsString(item)) {
-        return 1;
-    } else if (strlen(item->valuestring) > malloc_usable_size(target)) {
-        return 2;
-    }
-    strcpy(target, item->valuestring);
-    return 0;
-}
-
-
 CC *cc_conditionFromJSON(cJSON *params, unsigned char *err) {
-    if (!cJSON_IsObject(params)) {
+    if (!params || !cJSON_IsObject(params)) {
         strcpy(err, "Condition params must be an object");
         return NULL;
     }
-    unsigned char typeName[100];
-    if (0 != jsonGet(params, "type", typeName)) {
-        strcpy(err, "\"type\" not valid");
+    cJSON *typeName = cJSON_GetObjectItem(params, "type");
+    if (!typeName || !cJSON_IsString(typeName)) {
+        strcpy(err, "\"type\" must be a string");
         return NULL;
     }
     for (int i=0; i<typeRegistryLength; i++) {
         if (typeRegistry[i] != NULL) {
-            if (0 == strcmp(typeName, typeRegistry[i]->name)) {
+            if (0 == strcmp(typeName->valuestring, typeRegistry[i]->name)) {
                 return typeRegistry[i]->fromJSON(params, err);
             }
         }
@@ -219,7 +207,7 @@ static cJSON *jsonSignTreeEd25519(cJSON *params, unsigned char *err) {
 }
 
 
-cJSON *cc_conditionToJSON(CC *cond) {
+cJSON *cc_conditionToJSON(const CC *cond) {
     cJSON *params = cJSON_CreateObject();
     cJSON_AddItemToObject(params, "type", cJSON_CreateString(cond->type->name));
     cond->type->toJSON(cond, params);
@@ -227,7 +215,8 @@ cJSON *cc_conditionToJSON(CC *cond) {
 }
 
 
-unsigned char *cc_conditionToJSONString(CC *cond) {
+unsigned char *cc_conditionToJSONString(const CC *cond) {
+    assert(cond != NULL);
     cJSON *params = cc_conditionToJSON(cond);
     unsigned char *out = cJSON_Print(params);
     cJSON_Delete(params);
@@ -298,10 +287,14 @@ static cJSON* execJsonRPC(cJSON *root, unsigned char *err) {
 
 
 unsigned char *cc_jsonRPC(unsigned char* input) {
-    cJSON *root = cJSON_Parse(input);
     unsigned char err[1000] = "\0";
-    cJSON *out = execJsonRPC(root, err);
-    if (NULL == out) out = jsonErr(err);
+    cJSON *out;
+    cJSON *root = cJSON_Parse(input);
+    if (!root) out = jsonErr("Error parsing JSON request");
+    else {
+        out = execJsonRPC(root, err);
+        if (NULL == out) out = jsonErr(err);
+    }
     unsigned char *res = cJSON_Print(out);
     cJSON_Delete(out);
     cJSON_Delete(root);
