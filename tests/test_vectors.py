@@ -104,7 +104,7 @@ def decode_base64(data):
 
 
 def encode_base64(data):
-    return base64.urlsafe_b64encode(data).rstrip('=')
+    return base64.urlsafe_b64encode(data).rstrip(b'=')
 
 
 def b16_to_b64(b16):

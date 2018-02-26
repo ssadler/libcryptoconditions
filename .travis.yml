@@ -1,4 +1,6 @@
 language: C
+sudo: false
 compiler:
   - clang
   - gcc
+before_script: ./autogen.sh

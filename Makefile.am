@@ -53,3 +53,7 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/asn/per_decoder.c \
 	src/asn/per_encoder.c \
 	src/asn/per_opentype.c
+
+test:
+	sudo pip install pytest
+	pytest -s -x -v
