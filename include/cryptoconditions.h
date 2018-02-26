@@ -2,7 +2,7 @@
 #include <Fulfillment.h>
 #include <cJSON.h>
 
-#include "include/secp256k1/include/secp256k1.h"
+#include "secp256k1/include/secp256k1.h"
 
 
 #ifndef CRYPTOCONDITIONS_H
@@ -57,7 +57,7 @@ typedef struct CCVisitor {
  */
 int             cc_isFulfilled(struct CC *cond);
 int             cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
-                        const unsigned char *condBin, size_t condBinLength,
+                        int doHashMessage, const unsigned char *condBin, size_t condBinLength,
                         VerifyAux verifyAux, void *auxContext);
 int             cc_visit(struct CC *cond, struct CCVisitor visitor);
 size_t          cc_conditionBinary(struct CC *cond, unsigned char *buf);

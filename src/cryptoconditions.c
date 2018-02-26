@@ -209,7 +209,7 @@ int cc_visit(CC *cond, CCVisitor visitor) {
 }
 
 
-int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
+int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength, int doHashMsg,
               const unsigned char *condBin, size_t condBinLength,
               VerifyAux verifyAux, void *auxContext) {
     unsigned char targetBinary[1000];
@@ -222,8 +222,9 @@ int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
         return 0;
     }
 
-    char msgHash[32];
-    sha256(msg, msgLength, msgHash);
+    unsigned char msgHash[32];
+    if (doHashMsg) sha256(msg, msgLength, msgHash);
+    else memcpy(msgHash, msg, 32);
     if (!cc_secp256k1VerifyTreeMsg32(cond, msgHash)) {
         return 0;
     }
