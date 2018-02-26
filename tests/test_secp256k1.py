@@ -30,7 +30,6 @@ def test_sign_secp256k1_pass_simple():
             "signature": sig
         }
     }
-    print res['condition']
     cond_bin = jsonRPC('encodeCondition', res['condition'])['bin']
     ffill_bin = jsonRPC('encodeFulfillment', res['condition'])['fulfillment']
     assert jsonRPC('verifyFulfillment', {

@@ -55,7 +55,7 @@ def test_decode_invalid_condition():
     assert 0 == cc_rcb("\0")
 
     # Bogus type ID
-    assert 0 == cc_rcb(unhex('bf630c80016181030186a082020700')
+    assert 0 == cc_rcb(unhex('bf630c80016181030186a082020700'))
 
 
 def test_validate_empty_sigs():

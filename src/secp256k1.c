@@ -33,7 +33,13 @@ void lockSign() {
         ec_ctx_sign = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
     }
     unsigned char ent[32];
+#ifdef SYS_getrandom
     int read = syscall(SYS_getrandom, ent, 32, 0);
+#else
+    FILE *fp = fopen("/dev/urandom", "r");
+    int read = (int) fread(&ent, 1, 32, fp);
+    fclose(fp);
+#endif
     if (read != 32) {
         fprintf(stderr, "Could not read 32 bytes entropy from system\n");
         exit(1);
