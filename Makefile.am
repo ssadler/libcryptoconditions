@@ -55,9 +55,9 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 	src/asn/per_opentype.c
 
 test:
-	bash -c 'pip install pytest || true'
-	bash -c 'virtualenv .env'
-	pytest -s -x -v
+	bash -c '[ -d .env] || virtualenv .env'
+	.env/bin/pip install pytest
+	.env/bin/pytest -s -x -v
 
 test-debug:
 	gdb -ex run --args python3 -m pytest -s -x -v
