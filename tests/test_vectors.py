@@ -85,9 +85,9 @@ def test_decodeCondition(vectors_file):
 def test_json_condition_json_parse(vectors_file):
     vectors = _read_vectors(vectors_file)
     err = ctypes.create_string_buffer(100)
-    cc = so.cc_conditionFromJSONString(json.dumps(vectors['json']), err)
+    cc = so.cc_conditionFromJSONString(json.dumps(vectors['json']).encode(), err)
     out_ptr = so.cc_conditionToJSONString(cc)
-    out = ctypes.cast(out_ptr, c_char_p).value
+    out = ctypes.cast(out_ptr, c_char_p).value.decode()
     assert json.loads(out) == vectors['json']
 
 
@@ -108,7 +108,7 @@ def encode_base64(data):
 
 
 def b16_to_b64(b16):
-    return encode_base64(base64.b16decode(b16))
+    return encode_base64(base64.b16decode(b16)).decode()
 
 
 def _read_vectors(name):
@@ -124,10 +124,11 @@ so.cc_jsonRPC.restype = c_char_p
 
 
 def jsonRPC(method, params):
-    out = so.cc_jsonRPC(json.dumps({
+    req = json.dumps({
         'method': method,
         'params': params,
-    }))
-    return json.loads(out)
+    })
+    out = so.cc_jsonRPC(req.encode())
+    return json.loads(out.decode())
 
 

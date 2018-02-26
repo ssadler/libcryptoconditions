@@ -228,6 +228,7 @@ cJSON *cc_conditionToJSON(const CC *cond) {
 
 
 unsigned char *cc_conditionToJSONString(const CC *cond) {
+    assert(cond != NULL);
     cJSON *params = cc_conditionToJSON(cond);
     unsigned char *out = cJSON_Print(params);
     cJSON_Delete(params);
@@ -298,10 +299,14 @@ static cJSON* execJsonRPC(cJSON *root, unsigned char *err) {
 
 
 unsigned char *cc_jsonRPC(unsigned char* input) {
-    cJSON *root = cJSON_Parse(input);
     unsigned char err[1000] = "\0";
-    cJSON *out = execJsonRPC(root, err);
-    if (NULL == out) out = jsonErr(err);
+    cJSON *out;
+    cJSON *root = cJSON_Parse(input);
+    if (!root) out = jsonErr("Error parsing JSON request");
+    else {
+        out = execJsonRPC(root, err);
+        if (NULL == out) out = jsonErr(err);
+    }
     unsigned char *res = cJSON_Print(out);
     cJSON_Delete(out);
     cJSON_Delete(root);

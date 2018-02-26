@@ -32,7 +32,7 @@ def test_decode_invalid_fulfillment():
 
 def test_large_fulfillment():
     # This payload is valid and very large
-    f = unhex("a1839896b28083989680") + 10000000 * 'e' + \
+    f = unhex("a1839896b28083989680") + 10000000 * b'e' + \
          unhex("81030186a0a226a42480206ee12ed43d7dce6fc0b2be20e68083"
                "80baafc03d400404bbf95165d7527b373a8100")
     cond = cc_rfb(f)
