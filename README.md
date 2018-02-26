@@ -1,4 +1,4 @@
-# libcryptoconditions
+# libcryptoconditions [![Build Status](https://travis-ci.org/libscott/libcryptoconditions.svg?branch=komodo)](https://travis-ci.org/libscott/libcryptoconditions)
 
 Interledger Crypto-Conditions in C, targeting spec [draft-thomas-crypto-conditions-03](https://tools.ietf.org/html/draft-thomas-crypto-conditions-03).
 

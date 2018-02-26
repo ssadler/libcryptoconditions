@@ -4,7 +4,6 @@
 #include "asn/AuxFingerprintContents.h"
 #include "asn/OCTET_STRING.h"
 #include "cryptoconditions.h"
-#include "utils.h"
 #include "internal.h"
 #include "include/cJSON.h"
 
@@ -12,7 +11,7 @@
 struct CCType cc_auxType;
 
 
-static unsigned char *auxFingerprint(CC *cond) {
+static unsigned char *auxFingerprint(const CC *cond) {
     AuxFingerprintContents_t *fp = calloc(1, sizeof(AuxFingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->method, cond->method, strlen(cond->method));
     OCTET_STRING_fromBuf(&fp->conditionAux, cond->conditionAux, cond->conditionAuxLength);
@@ -20,12 +19,12 @@ static unsigned char *auxFingerprint(CC *cond) {
 }
 
 
-static unsigned long auxCost(CC *cond) {
+static unsigned long auxCost(const CC *cond) {
     return 131072;
 }
 
 
-static CC *auxFromJSON(cJSON *params, unsigned char *err) {
+static CC *auxFromJSON(const cJSON *params, unsigned char *err) {
     size_t conditionAuxLength, fulfillmentAuxLength;
     unsigned char *conditionAux = 0, *fulfillmentAux = 0;
 
@@ -59,7 +58,7 @@ static CC *auxFromJSON(cJSON *params, unsigned char *err) {
 }
 
 
-static void auxToJSON(CC *cond, cJSON *params) {
+static void auxToJSON(const CC *cond, cJSON *params) {
 
     // add method
     cJSON_AddItemToObject(params, "method", cJSON_CreateString(cond->method));
@@ -78,7 +77,7 @@ static void auxToJSON(CC *cond, cJSON *params) {
 }
 
 
-static CC *auxFromFulfillment(Fulfillment_t *ffill) {
+static CC *auxFromFulfillment(const Fulfillment_t *ffill) {
     CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_auxType;
 
@@ -102,7 +101,7 @@ static CC *auxFromFulfillment(Fulfillment_t *ffill) {
 }
 
 
-static Fulfillment_t *auxToFulfillment(CC *cond) {
+static Fulfillment_t *auxToFulfillment(const CC *cond) {
     if (!cond->fulfillmentAux) {
         return NULL;
     }
@@ -116,7 +115,7 @@ static Fulfillment_t *auxToFulfillment(CC *cond) {
 }
 
 
-int auxIsFulfilled(CC *cond) {
+int auxIsFulfilled(const CC *cond) {
     return cond->fulfillmentAux > 0;
 }
 
@@ -130,7 +129,7 @@ static void auxFree(CC *cond) {
 }
 
 
-static uint32_t auxSubtypes(CC *cond) {
+static uint32_t auxSubtypes(const CC *cond) {
     return 0;
 }
 
@@ -160,7 +159,7 @@ int auxVisit(CC *cond, CCVisitor visitor) {
 }
 
 
-int cc_verifyAux(CC *cond, VerifyAux verify, void *context) {
+int cc_verifyAux(const CC *cond, VerifyAux verify, void *context) {
     CCAuxVerifyData auxData = {verify, context};
     CCVisitor visitor = {&auxVisit, "", 0, &auxData};
     return cc_visit(cond, visitor);

@@ -60,7 +60,7 @@ void initVerify() {
 }
 
 
-static unsigned char *secp256k1Fingerprint(CC *cond) {
+static unsigned char *secp256k1Fingerprint(const CC *cond) {
     Secp256k1FingerprintContents_t *fp = calloc(1, sizeof(Secp256k1FingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, SECP256K1_PK_SIZE);
     return hashFingerprintContents(&asn_DEF_Secp256k1FingerprintContents, fp);
@@ -77,7 +77,7 @@ int secp256k1Verify(CC *cond, CCVisitor visitor) {
 }
 
 
-static int cc_secp256k1VerifyTreeMsg32(CC *cond, unsigned char *msg32) {
+static int cc_secp256k1VerifyTreeMsg32(const CC *cond, const unsigned char *msg32) {
     int subtypes = getSubtypes(cond);
     if (subtypes & (1 << cc_prefixType.typeId) &&
         subtypes & (1 << cc_secp256k1Type.typeId)) {
@@ -95,8 +95,8 @@ static int cc_secp256k1VerifyTreeMsg32(CC *cond, unsigned char *msg32) {
  * Signing data
  */
 typedef struct CCSecp256k1SigningData {
-    unsigned char *pk;
-    unsigned char *sk;
+    const unsigned char *pk;
+    const unsigned char *sk;
     int nSigned;
 } CCSecp256k1SigningData;
 
@@ -123,7 +123,7 @@ static int secp256k1Sign(CC *cond, CCVisitor visitor) {
 /*
  * Sign secp256k1 conditions in a tree
  */
-static int cc_signTreeSecp256k1Msg32(struct CC *cond, unsigned char *privateKey, unsigned char *msg32) {
+static int cc_signTreeSecp256k1Msg32(CC *cond, const unsigned char *privateKey, const unsigned char *msg32) {
     if (getSubtypes(cond) & (1 << cc_preimageType.typeId)) {
         // No support for prefix currently, due to pending protocol decision on
         // how to combine message and prefix into 32 byte hash
@@ -142,7 +142,7 @@ static int cc_signTreeSecp256k1Msg32(struct CC *cond, unsigned char *privateKey,
 }
 
 
-static unsigned long secp256k1Cost(CC *cond) {
+static unsigned long secp256k1Cost(const CC *cond) {
     return 131072;
 }
 
@@ -172,7 +172,7 @@ static CC *cc_secp256k1Condition(const unsigned char *publicKey, const unsigned 
 }
 
 
-static CC *secp256k1FromJSON(cJSON *params, unsigned char *err) {
+static CC *secp256k1FromJSON(const cJSON *params, unsigned char *err) {
     CC *cond = 0;
     unsigned char *pk = 0, *sig = 0;
     size_t pkSize, sigSize;
@@ -196,7 +196,7 @@ END:
 }
 
 
-static void secp256k1ToJSON(CC *cond, cJSON *params) {
+static void secp256k1ToJSON(const CC *cond, cJSON *params) {
     jsonAddBase64(params, "publicKey", cond->publicKey, SECP256K1_PK_SIZE);
     if (cond->signature) {
         jsonAddBase64(params, "signature", cond->signature, SECP256K1_SIG_SIZE);
@@ -204,13 +204,13 @@ static void secp256k1ToJSON(CC *cond, cJSON *params) {
 }
 
 
-static CC *secp256k1FromFulfillment(Fulfillment_t *ffill) {
+static CC *secp256k1FromFulfillment(const Fulfillment_t *ffill) {
     return cc_secp256k1Condition(ffill->choice.secp256k1Sha256.publicKey.buf,
                                  ffill->choice.secp256k1Sha256.signature.buf);
 }
 
 
-static Fulfillment_t *secp256k1ToFulfillment(CC *cond) {
+static Fulfillment_t *secp256k1ToFulfillment(const CC *cond) {
     if (!cond->signature) {
         return NULL;
     }
@@ -225,7 +225,7 @@ static Fulfillment_t *secp256k1ToFulfillment(CC *cond) {
 }
 
 
-int secp256k1IsFulfilled(CC *cond) {
+int secp256k1IsFulfilled(const CC *cond) {
     return cond->signature > 0;
 }
 
@@ -239,7 +239,7 @@ static void secp256k1Free(CC *cond) {
 }
 
 
-static uint32_t secp256k1Subtypes(CC *cond) {
+static uint32_t secp256k1Subtypes(const CC *cond) {
     return 0;
 }
 

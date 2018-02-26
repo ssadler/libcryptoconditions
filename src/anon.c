@@ -10,7 +10,7 @@
 struct CCType cc_anonType;
 
 
-static CC *mkAnon(Condition_t *asnCond) {
+static CC *mkAnon(const Condition_t *asnCond) {
     CCType *realType = getTypeByAsnEnum(asnCond->present);
     if (!realType) {
         printf("Unknown ASN type: %i", asnCond->present);
@@ -23,7 +23,7 @@ static CC *mkAnon(Condition_t *asnCond) {
     cond->type->hasSubtypes = realType->hasSubtypes;
     cond->type->typeId = realType->typeId;
     cond->type->asnType = realType->asnType;
-    CompoundSha256Condition_t *deets =& asnCond->choice.thresholdSha256;
+    const CompoundSha256Condition_t *deets = &asnCond->choice.thresholdSha256;
     memcpy(cond->fingerprint, deets->fingerprint.buf, 32);
     cond->cost = deets->cost;
     if (realType->hasSubtypes) {
@@ -34,7 +34,7 @@ static CC *mkAnon(Condition_t *asnCond) {
 
 
 
-static void anonToJSON(CC *cond, cJSON *params) {
+static void anonToJSON(const CC *cond, cJSON *params) {
     unsigned char *b64 = base64_encode(cond->fingerprint, 32);
     cJSON_AddItemToObject(params, "fingerprint", cJSON_CreateString(b64));
     free(b64);
@@ -43,24 +43,24 @@ static void anonToJSON(CC *cond, cJSON *params) {
 }
 
 
-static unsigned char *anonFingerprint(CC *cond) {
+static unsigned char *anonFingerprint(const CC *cond) {
     unsigned char *out = calloc(1, 32);
     memcpy(out, cond->fingerprint, 32);
     return out;
 }
 
 
-static unsigned long anonCost(CC *cond) {
+static unsigned long anonCost(const CC *cond) {
     return cond->cost;
 }
 
 
-static uint32_t anonSubtypes(CC *cond) {
+static uint32_t anonSubtypes(const CC *cond) {
     return cond->subtypes;
 }
 
 
-static Fulfillment_t *anonFulfillment(CC *cond) {
+static Fulfillment_t *anonFulfillment(const CC *cond) {
     return NULL;
 }
 
@@ -71,7 +71,7 @@ static void anonFree(CC *cond) {
 }
 
 
-static int anonIsFulfilled(CC *cond) {
+static int anonIsFulfilled(const CC *cond) {
     return 0;
 }
 

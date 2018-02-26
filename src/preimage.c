@@ -10,7 +10,7 @@
 struct CCType cc_preimageType;
 
 
-static CC *preimageFromJSON(cJSON *params, unsigned char *err) {
+static CC *preimageFromJSON(const cJSON *params, unsigned char *err) {
     cJSON *preimage_item = cJSON_GetObjectItem(params, "preimage");
     if (!cJSON_IsString(preimage_item)) {
         strcpy(err, "preimage must be a string");
@@ -25,26 +25,26 @@ static CC *preimageFromJSON(cJSON *params, unsigned char *err) {
 }
 
 
-static void preimageToJSON(CC *cond, cJSON *params) {
+static void preimageToJSON(const CC *cond, cJSON *params) {
     unsigned char *encoded = base64_encode(cond->preimage, cond->preimageLength);
     cJSON_AddStringToObject(params, "preimage", encoded);
     free(encoded);
 }
 
 
-static unsigned long preimageCost(CC *cond) {
+static unsigned long preimageCost(const CC *cond) {
     return (unsigned long) cond->preimageLength;
 }
 
 
-static unsigned char *preimageFingerprint(CC *cond) {
+static unsigned char *preimageFingerprint(const CC *cond) {
     unsigned char *hash = calloc(1, 32);
     sha256(cond->preimage, cond->preimageLength, hash);
     return hash;
 }
 
 
-static CC *preimageFromFulfillment(Fulfillment_t *ffill) {
+static CC *preimageFromFulfillment(const Fulfillment_t *ffill) {
     CC *cond = calloc(1, sizeof(CC));
     cond->type = &cc_preimageType;
     PreimageFulfillment_t p = ffill->choice.preimageSha256;
@@ -55,7 +55,7 @@ static CC *preimageFromFulfillment(Fulfillment_t *ffill) {
 }
 
 
-static Fulfillment_t *preimageToFulfillment(CC *cond) {
+static Fulfillment_t *preimageToFulfillment(const CC *cond) {
     Fulfillment_t *ffill = calloc(1, sizeof(Fulfillment_t));
     ffill->present = Fulfillment_PR_preimageSha256;
     PreimageFulfillment_t *pf = &ffill->choice.preimageSha256;
@@ -64,7 +64,7 @@ static Fulfillment_t *preimageToFulfillment(CC *cond) {
 }
 
 
-int preimageIsFulfilled(CC *cond) {
+int preimageIsFulfilled(const CC *cond) {
     return 1;
 }
 
@@ -75,7 +75,7 @@ static void preimageFree(CC *cond) {
 }
 
 
-static uint32_t preimageSubtypes(CC *cond) {
+static uint32_t preimageSubtypes(const CC *cond) {
     return 0;
 }
 

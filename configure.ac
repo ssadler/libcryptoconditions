@@ -3,7 +3,6 @@
 
 AC_PREREQ([2.69])
 AC_INIT([FULL-PACKAGE-NAME], [VERSION], [BUG-REPORT-ADDRESS])
-AC_CONFIG_SRCDIR([src/utils.h])
 AC_CONFIG_HEADERS([src/cryptoconditions-config.h])
 AC_CONFIG_MACRO_DIRS([m4])
 AC_CONFIG_SUBDIRS([src/include/secp256k1])
@@ -13,6 +12,7 @@ LT_INIT
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CC_STDC
 
 # Checks for libraries.
 

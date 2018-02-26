@@ -45,8 +45,8 @@ typedef struct CC {
  * Crypto Condition Visitor
  */
 typedef struct CCVisitor {
-    int (*visit)(struct CC *cond, struct CCVisitor visitor);
-    unsigned char *msg;
+    int (*visit)(CC *cond, struct CCVisitor visitor);
+    const unsigned char *msg;
     size_t msgLength;
     void *context;
 } CCVisitor;
@@ -55,26 +55,26 @@ typedef struct CCVisitor {
 /*
  * Public methods
  */
-int             cc_isFulfilled(struct CC *cond);
+int             cc_isFulfilled(const CC *cond);
 int             cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
                         int doHashMessage, const unsigned char *condBin, size_t condBinLength,
                         VerifyAux verifyAux, void *auxContext);
-int             cc_visit(struct CC *cond, struct CCVisitor visitor);
-size_t          cc_conditionBinary(struct CC *cond, unsigned char *buf);
-size_t          cc_fulfillmentBinary(struct CC *cond, unsigned char *buf, size_t bufLength);
-static int      cc_signTreeEd25519(struct CC *cond, unsigned char *privateKey, unsigned char *msg,
-                        size_t msgLength);
-static int      cc_signTreeSecp256k1Msg32(struct CC *cond, unsigned char *privateKey, unsigned char *msg32);
-static int      cc_secp256k1VerifyTreeMsg32(CC *cond, unsigned char *msg32);
+int             cc_visit(CC *cond, struct CCVisitor visitor);
+size_t          cc_conditionBinary(const CC *cond, unsigned char *buf);
+size_t          cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t bufLength);
+static int      cc_signTreeEd25519(CC *cond, const unsigned char *privateKey,
+                        const unsigned char *msg, size_t msgLength);
+static int      cc_signTreeSecp256k1Msg32(CC *cond, const unsigned char *privateKey, const unsigned char *msg32);
+static int      cc_secp256k1VerifyTreeMsg32(const CC *cond, const unsigned char *msg32);
 struct CC*      cc_conditionFromJSON(cJSON *params, unsigned char *err);
 struct CC*      cc_conditionFromJSONString(const unsigned char *json, unsigned char *err);
 struct CC*      cc_readConditionBinary(unsigned char *cond_bin, size_t cond_bin_len);
 struct CC*      cc_readFulfillmentBinary(unsigned char *ffill_bin, size_t ffill_bin_len);
-struct cJSON*   cc_conditionToJSON(struct CC *cond);
-unsigned char*  cc_conditionToJSONString(struct CC *cond);
-unsigned char*  cc_conditionUri(struct CC *cond);
+struct cJSON*   cc_conditionToJSON(const CC *cond);
+unsigned char*  cc_conditionToJSONString(const CC *cond);
+unsigned char*  cc_conditionUri(const CC *cond);
 unsigned char*  cc_jsonRPC(unsigned char *request);
-unsigned long   cc_getCost(struct CC *cond);
+unsigned long   cc_getCost(const CC *cond);
 void            cc_free(struct CC *cond);
 
 
