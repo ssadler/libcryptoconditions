@@ -57,7 +57,8 @@ libcryptoconditions_la_SOURCES = src/cryptoconditions.c \
 test:
 	bash -c '[ -d .env ] || virtualenv .env'
 	.env/bin/pip install pytest
-	gdb -batch -ex run -ex bt --args .env/bin/python -m pytest -s -x -v 2>&1 | grep -v ^"No stack."$
+	bash -c "echo ${SHELL}"
+	SHELL=/bin/bash gdb -batch -ex run -ex bt --args .env/bin/python -m pytest -s -x -v 2>&1 | grep -v ^"No stack."$
 
 test-debug-interactive:
 	gdb -ex run --args python3 -m pytest -s -x -v
