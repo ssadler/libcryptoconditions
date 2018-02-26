@@ -34,31 +34,19 @@ static cJSON *jsonFulfillment(CC *cond) {
 }
 
 
-int jsonGet(cJSON *object, unsigned char *name, unsigned char *target) {
-    cJSON *item = cJSON_GetObjectItem(object, name);
-    if (!cJSON_IsString(item)) {
-        return 1;
-    } else if (strlen(item->valuestring) > malloc_usable_size(target)) {
-        return 2;
-    }
-    strcpy(target, item->valuestring);
-    return 0;
-}
-
-
 CC *cc_conditionFromJSON(cJSON *params, unsigned char *err) {
     if (!params || !cJSON_IsObject(params)) {
         strcpy(err, "Condition params must be an object");
         return NULL;
     }
-    unsigned char typeName[100];
-    if (0 != jsonGet(params, "type", typeName)) {
-        strcpy(err, "\"type\" not valid");
+    cJSON *typeName = cJSON_GetObjectItem(params, "type");
+    if (!typeName || !cJSON_IsString(typeName)) {
+        strcpy(err, "\"type\" must be a string");
         return NULL;
     }
     for (int i=0; i<typeRegistryLength; i++) {
         if (typeRegistry[i] != NULL) {
-            if (0 == strcmp(typeName, typeRegistry[i]->name)) {
+            if (0 == strcmp(typeName->valuestring, typeRegistry[i]->name)) {
                 return typeRegistry[i]->fromJSON(params, err);
             }
         }
