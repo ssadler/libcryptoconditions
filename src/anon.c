@@ -43,11 +43,6 @@ static void anonToJSON(CC *cond, cJSON *params) {
 }
 
 
-static int anonVerify(CC *cond, unsigned char *msg, size_t length) {
-    return 0;
-}
-
-
 static unsigned char *anonFingerprint(CC *cond) {
     unsigned char *out = calloc(1, 32);
     memcpy(out, cond->fingerprint, 32);

@@ -158,7 +158,7 @@ static CC *thresholdFromJSON(cJSON *params, unsigned char *err) {
     cond->type = &cc_thresholdType;
     cond->threshold = (long) threshold_item->valuedouble;
     cond->size = cJSON_GetArraySize(subfulfillments_item);
-    cond->subconditions = calloc(1, cond->size * sizeof(CC*));
+    cond->subconditions = calloc(cond->size, sizeof(CC*));
     
     cJSON *sub;
     for (int i=0; i<cond->size; i++) {

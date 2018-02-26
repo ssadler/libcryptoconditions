@@ -11,14 +11,13 @@ struct CCType cc_ed25519Type;
 
 
 static unsigned char *ed25519Fingerprint(CC *cond) {
-    unsigned char out[BUF_SIZE];
     Ed25519FingerprintContents_t *fp = calloc(1, sizeof(Ed25519FingerprintContents_t));
     OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, 32);
     return hashFingerprintContents(&asn_DEF_Ed25519FingerprintContents, fp);
 }
 
 
-static int ed25519Verify(CC *cond, CCVisitor visitor) {
+int ed25519Verify(CC *cond, CCVisitor visitor) {
     if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
     // TODO: test failure mode: empty sig / null pointer
     return ed25519_verify(cond->signature, visitor.msg, visitor.msgLength, cond->publicKey);

@@ -22,7 +22,8 @@ static struct CCType *typeRegistry[] = {
     &cc_ed25519Type
 };
 
-static int typeRegistryLength = 5;
+
+static int typeRegistryLength = sizeof(typeRegistry) / sizeof(typeRegistry[0]);
 
 
 void appendUriSubtypes(uint32_t mask, unsigned char *buf) {
@@ -59,22 +60,6 @@ unsigned char *cc_conditionUri(CC *cond) {
     free(fp);
     free(encoded);
 
-    return out;
-}
-
-
-static unsigned char *fingerprintTypes(int mask) {
-    unsigned char *out = calloc(1, 1000);
-    int append = 0;
-    for (int i=0; i<typeRegistryLength; i++) {
-        if (mask & 1 << i) {
-            if (append) {
-                strcat(out, ",");
-                strcat(out, typeRegistry[i]->name);
-            } else strcpy(out, typeRegistry[i]->name);
-            append = 1;
-        }
-    }
     return out;
 }
 
@@ -251,7 +236,8 @@ int cc_isFulfilled(CC *cond) {
 
 
 void cc_free(CC *cond) {
-    cond->type->free(cond);
+    if (cond)
+        cond->type->free(cond);
 }
 
 
