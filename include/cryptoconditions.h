@@ -17,6 +17,17 @@ extern "C" {
 struct CC;
 struct CCType;
 
+
+enum CCTypeId {
+    CC_Preimage = 0,
+    CC_Prefix = 1,
+    CC_Threshold = 2,
+    CC_Ed25519 = 4,
+    CC_Secp256k1 = 5,
+    CC_Aux = 15
+};
+
+
 /*
  * Auxiliary verification callback
  */
@@ -35,7 +46,7 @@ typedef struct CC {
         struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition;
                  unsigned long maxMessageLength; };
         struct { unsigned char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
-        struct { unsigned char method[64]; unsigned char *conditionAux; size_t conditionAuxLength; unsigned char *fulfillmentAux; size_t fulfillmentAuxLength; };
+        struct { unsigned char method[64]; unsigned char *conditionAux; size_t conditionAuxLength; unsigned char *fulfillmentAux; size_t fulfillmentAuxLength; uint32_t replacementWindow; };
     };
 } CC;
 
@@ -75,6 +86,7 @@ unsigned char*  cc_conditionToJSONString(const CC *cond);
 unsigned char*  cc_conditionUri(const CC *cond);
 unsigned char*  cc_jsonRPC(unsigned char *request);
 unsigned long   cc_getCost(const CC *cond);
+enum CCTypeId   cc_typeId(const CC *cond);
 void            cc_free(struct CC *cond);
 
 

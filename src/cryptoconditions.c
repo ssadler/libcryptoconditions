@@ -249,6 +249,11 @@ CC *cc_readConditionBinary(unsigned char *cond_bin, size_t length) {
 }
 
 
+enum CCTypeId cc_typeId(const CC *cond) {
+    return cond->type->typeId;
+}
+
+
 int cc_isFulfilled(const CC *cond) {
     return cond->type->isFulfilled(cond);
 }
