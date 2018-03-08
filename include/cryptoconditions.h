@@ -45,7 +45,7 @@ typedef struct CC {
         struct { long threshold; int size; struct CC **subconditions; };
         struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition;
                  unsigned long maxMessageLength; };
-        struct { unsigned char method[64]; unsigned char *paramsBin; size_t paramsBinLength; unsigned long replacementWindow; };
+        struct { char method[64]; unsigned char *paramsBin; size_t paramsBinLength; unsigned long replacementWindow; };
         struct { unsigned char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
     };
 } CC;
