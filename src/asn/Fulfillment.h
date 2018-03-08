@@ -15,7 +15,7 @@
 #include "RsaSha256Fulfillment.h"
 #include "Ed25519Sha512Fulfillment.h"
 #include "Secp256k1Fulfillment.h"
-#include "AuxFulfillment.h"
+#include "EvalFulfillment.h"
 #include <constr_CHOICE.h>
 
 #ifdef __cplusplus
@@ -31,7 +31,7 @@ typedef enum Fulfillment_PR {
 	Fulfillment_PR_rsaSha256,
 	Fulfillment_PR_ed25519Sha256,
 	Fulfillment_PR_secp256k1Sha256,
-	Fulfillment_PR_auxSha256
+	Fulfillment_PR_evalSha256
 } Fulfillment_PR;
 
 /* Forward declarations */
@@ -48,7 +48,7 @@ typedef struct Fulfillment {
 		RsaSha256Fulfillment_t	 rsaSha256;
 		Ed25519Sha512Fulfillment_t	 ed25519Sha256;
 		Secp256k1Fulfillment_t	 secp256k1Sha256;
-		AuxFulfillment_t	 auxSha256;
+		EvalFulfillment_t	 evalSha256;
 	} choice;
 	
 	/* Context for parsing across buffer boundaries */

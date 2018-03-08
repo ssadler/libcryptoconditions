@@ -28,7 +28,7 @@ v0017 = '0017_test-advanced-notarized-receipt-multiple-notaries'
 #v0014 = '0014_test-basic-rsa4096'
 
 # Custom test vectors
-v1000 = '1000_test-minimal-aux'
+v1000 = '1000_test-minimal-eval'
 v1001 = '1001_test-minimal-secp256k1'
 
 

@@ -24,14 +24,14 @@ enum CCTypeId {
     CC_Threshold = 2,
     CC_Ed25519 = 4,
     CC_Secp256k1 = 5,
-    CC_Aux = 15
+    CC_Eval = 15
 };
 
 
 /*
- * Auxiliary verification callback
+ * Evaliliary verification callback
  */
-typedef int (*VerifyAux)(struct CC *cond, void *context);
+typedef int (*VerifyEval)(struct CC *cond, void *context);
 
 
 /*
@@ -45,8 +45,8 @@ typedef struct CC {
         struct { long threshold; int size; struct CC **subconditions; };
         struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition;
                  unsigned long maxMessageLength; };
+        struct { unsigned char method[64]; unsigned char *paramsBin; size_t paramsBinLength; unsigned long replacementWindow; };
         struct { unsigned char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
-        struct { unsigned char method[64]; unsigned char *conditionAux; size_t conditionAuxLength; unsigned char *fulfillmentAux; size_t fulfillmentAuxLength; uint32_t replacementWindow; };
     };
 } CC;
 
@@ -69,7 +69,7 @@ typedef struct CCVisitor {
 int             cc_isFulfilled(const CC *cond);
 int             cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
                         int doHashMessage, const unsigned char *condBin, size_t condBinLength,
-                        VerifyAux verifyAux, void *auxContext);
+                        VerifyEval verifyEval, void *evalContext);
 int             cc_visit(CC *cond, struct CCVisitor visitor);
 size_t          cc_conditionBinary(const CC *cond, unsigned char *buf);
 size_t          cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t bufLength);

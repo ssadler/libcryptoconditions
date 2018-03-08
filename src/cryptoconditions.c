@@ -10,7 +10,7 @@
 #include "src/ed25519.c"
 #include "src/secp256k1.c"
 #include "src/anon.c"
-#include "src/aux.c"
+#include "src/eval.c"
 #include "src/json_rpc.c"
 #include "src/utils.c"
 #include <cJSON.h>
@@ -25,7 +25,7 @@ static struct CCType *typeRegistry[] = {
     &cc_ed25519Type,
     &cc_secp256k1Type,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 6-14 unused */
-    &cc_auxType
+    &cc_evalType
 };
 
 
@@ -210,7 +210,7 @@ int cc_visit(CC *cond, CCVisitor visitor) {
 
 int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength, int doHashMsg,
               const unsigned char *condBin, size_t condBinLength,
-              VerifyAux verifyAux, void *auxContext) {
+              VerifyEval verifyEval, void *evalContext) {
     unsigned char targetBinary[1000];
     const size_t binLength = cc_conditionBinary(cond, targetBinary);
     if (0 != memcmp(condBin, targetBinary, binLength)) {
@@ -228,7 +228,7 @@ int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
         return 0;
     }
 
-    if (!cc_verifyAux(cond, verifyAux, auxContext)) {
+    if (!cc_verifyEval(cond, verifyEval, evalContext)) {
         return 0;
     }
     return 1;

@@ -10,13 +10,13 @@ ASN_MODULE_SOURCES=	\
 	RsaSha256Fulfillment.c	\
 	Ed25519Sha512Fulfillment.c	\
 	Secp256k1Fulfillment.c	\
-	AuxFulfillment.c	\
+	EvalFulfillment.c	\
 	PrefixFingerprintContents.c	\
 	ThresholdFingerprintContents.c	\
 	RsaFingerprintContents.c	\
 	Ed25519FingerprintContents.c	\
 	Secp256k1FingerprintContents.c	\
-	AuxFingerprintContents.c
+	EvalFingerprintContents.c
 
 ASN_MODULE_HEADERS=	\
 	Condition.h	\
@@ -30,13 +30,13 @@ ASN_MODULE_HEADERS=	\
 	RsaSha256Fulfillment.h	\
 	Ed25519Sha512Fulfillment.h	\
 	Secp256k1Fulfillment.h	\
-	AuxFulfillment.h	\
+	EvalFulfillment.h	\
 	PrefixFingerprintContents.h	\
 	ThresholdFingerprintContents.h	\
 	RsaFingerprintContents.h	\
 	Ed25519FingerprintContents.h	\
 	Secp256k1FingerprintContents.h	\
-	AuxFingerprintContents.h
+	EvalFingerprintContents.h
 
 ASN_MODULE_HEADERS+=INTEGER.h
 ASN_MODULE_HEADERS+=NativeEnumerated.h
