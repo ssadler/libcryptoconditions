@@ -4,7 +4,12 @@ SUBDIRS = src/include/secp256k1
 AM_CFLAGS = -I$(top_srcdir)/src/asn -I$(top_srcdir)/include -I$(top_srcdir)/src/include \
 			-Wall -Wno-pointer-sign -Wno-discarded-qualifiers
 
-libcryptoconditions_la_LIBADD = src/include/secp256k1/libsecp256k1.la
+LIBSECP256K1=src/include/secp256k1/libsecp256k1.la
+
+$(LIBSECP256K1): $(wildcard src/secp256k1/*)
+	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)                                             
+
+libcryptoconditions_la_LIBADD = $(LIBSECP256K1)
 libcryptoconditions_la_SOURCES = \
 	src/cryptoconditions.c \
 	src/include/cJSON.c \
