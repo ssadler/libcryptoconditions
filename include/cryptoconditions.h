@@ -1,8 +1,4 @@
-#include <Condition.h>
-#include <Fulfillment.h>
 #include <cJSON.h>
-
-#include "secp256k1/include/secp256k1.h"
 
 
 #ifndef CRYPTOCONDITIONS_H
@@ -71,11 +67,11 @@ int             cc_verify(const struct CC *cond, const unsigned char *msg, size_
                         int doHashMessage, const unsigned char *condBin, size_t condBinLength,
                         VerifyEval verifyEval, void *evalContext);
 int             cc_visit(CC *cond, struct CCVisitor visitor);
+int             cc_signTreeEd25519(CC *cond, const unsigned char *privateKey,
+                                   const unsigned char *msg, size_t msgLength);
+int             cc_signTreeSecp256k1Msg32(CC *cond, const unsigned char *privateKey, const unsigned char *msg32);
 size_t          cc_conditionBinary(const CC *cond, unsigned char *buf);
 size_t          cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t bufLength);
-static int      cc_signTreeEd25519(CC *cond, const unsigned char *privateKey,
-                        const unsigned char *msg, size_t msgLength);
-static int      cc_signTreeSecp256k1Msg32(CC *cond, const unsigned char *privateKey, const unsigned char *msg32);
 static int      cc_secp256k1VerifyTreeMsg32(const CC *cond, const unsigned char *msg32);
 struct CC*      cc_conditionFromJSON(cJSON *params, unsigned char *err);
 struct CC*      cc_conditionFromJSONString(const unsigned char *json, unsigned char *err);

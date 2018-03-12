@@ -129,7 +129,7 @@ static int secp256k1Sign(CC *cond, CCVisitor visitor) {
 /*
  * Sign secp256k1 conditions in a tree
  */
-static int cc_signTreeSecp256k1Msg32(CC *cond, const unsigned char *privateKey, const unsigned char *msg32) {
+int cc_signTreeSecp256k1Msg32(CC *cond, const unsigned char *privateKey, const unsigned char *msg32) {
     if (getSubtypes(cond) & (1 << cc_preimageType.typeId)) {
         // No support for prefix currently, due to pending protocol decision on
         // how to combine message and prefix into 32 byte hash
