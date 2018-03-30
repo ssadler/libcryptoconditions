@@ -14,7 +14,7 @@ struct CCType cc_thresholdType;
 static uint32_t thresholdSubtypes(const CC *cond) {
     uint32_t mask = 0;
     for (int i=0; i<cond->size; i++) {
-        mask |= getSubtypes(cond->subconditions[i]);
+        mask |= cc_typeMask(cond->subconditions[i]);
     }
     mask &= ~(1 << cc_thresholdType.typeId);
     return mask;
@@ -111,7 +111,7 @@ static int cmpByCostDesc(const void *c1, const void *c2) {
 static Fulfillment_t *thresholdToFulfillment(const CC *cond) {
     CC *sub;
     Fulfillment_t *fulfillment;
-
+    
     qsort(cond->subconditions, cond->size, sizeof(CC*), cmpByCostDesc);
 
     ThresholdFulfillment_t *tf = calloc(1, sizeof(ThresholdFulfillment_t));

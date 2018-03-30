@@ -1,6 +1,7 @@
 #include <Condition.h>
 #include <Fulfillment.h>
 #include <cJSON.h>
+#include <stdint.h>
 
 
 #ifndef CRYPTOCONDITIONS_H
@@ -14,6 +15,14 @@ extern "C" {
 
 struct CC;
 struct CCType;
+
+
+enum CCTypeId {
+    CC_Preimage = 0,
+    CC_Prefix = 1,
+    CC_Threshold = 2,
+    CC_Ed25519 = 4
+};
 
 
 /*
@@ -48,13 +57,15 @@ typedef struct CCVisitor {
  * Public methods
  */
 int             cc_isFulfilled(const CC *cond);
-int             cc_verify(const CC *cond, const unsigned char *msg, size_t msgLength,
-                        const unsigned char *condBin, size_t condBinLength);
+int             cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
+                        int doHashMessage, const unsigned char *condBin, size_t condBinLength);
 int             cc_visit(CC *cond, struct CCVisitor visitor);
+int             cc_signTreeEd25519(CC *cond, const unsigned char *privateKey,
+                                   const unsigned char *msg, size_t msgLength);
+int             cc_signTreeSecp256k1Msg32(CC *cond, const unsigned char *privateKey, const unsigned char *msg32);
 size_t          cc_conditionBinary(const CC *cond, unsigned char *buf);
 size_t          cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t bufLength);
-static int      cc_signTreeEd25519(CC *cond, const unsigned char *privateKey,
-                        const unsigned char *msg, size_t msgLength);
+static int      cc_secp256k1VerifyTreeMsg32(const CC *cond, const unsigned char *msg32);
 struct CC*      cc_conditionFromJSON(cJSON *params, unsigned char *err);
 struct CC*      cc_conditionFromJSONString(const unsigned char *json, unsigned char *err);
 struct CC*      cc_readConditionBinary(unsigned char *cond_bin, size_t cond_bin_len);
@@ -64,8 +75,9 @@ unsigned char*  cc_conditionToJSONString(const CC *cond);
 unsigned char*  cc_conditionUri(const CC *cond);
 unsigned char*  cc_jsonRPC(unsigned char *request);
 unsigned long   cc_getCost(const CC *cond);
+enum CCTypeId   cc_typeId(const CC *cond);
+uint32_t        cc_typeMask(const CC *cond);
 void            cc_free(struct CC *cond);
-
 
 #ifdef __cplusplus
 }

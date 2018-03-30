@@ -110,7 +110,7 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, unsigned char *err) {
         goto END;
     }
 
-    int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len);
+    int valid = cc_verify(cond, msg, msg_len, 1, cond_bin, cond_bin_len);
     cc_free(cond);
     out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));
@@ -161,48 +161,38 @@ static cJSON *jsonDecodeCondition(cJSON *params, unsigned char *err) {
 
 
 static cJSON *jsonSignTreeEd25519(cJSON *params, unsigned char *err) {
+    cJSON *out = 0;
+    unsigned char *msg = 0, *sk = 0;
+
     cJSON *condition_item = cJSON_GetObjectItem(params, "condition");
     CC *cond = cc_conditionFromJSON(condition_item, err);
     if (cond == NULL) {
-        return NULL;
+        goto END;
     }
 
-    cJSON *sk_b64_item = cJSON_GetObjectItem(params, "privateKey");
-    cJSON *msg_b64_item = cJSON_GetObjectItem(params, "message");
-
-    if (!cJSON_IsString(sk_b64_item)) {
-        strcpy(err, "privateKey must be a string");
-        return NULL;
-    }
-    if (!cJSON_IsString(msg_b64_item)) {
-        strcpy(err, "message must be a string");
-        return NULL;
+    size_t skLength;
+    if (!jsonGetBase64(params, "privateKey", err, &sk, &skLength)) {
+        goto END;
     }
 
-    size_t msg_len;
-    unsigned char *msg = base64_decode(msg_b64_item->valuestring, &msg_len);
-    if (!msg) {
-        strcpy(err, "message is not valid b64");
-        return 0;
+    if (skLength != 32) {
+        strcpy(err, "privateKey wrong length");
+    }
+    
+    size_t msgLength;
+    if (!jsonGetBase64(params, "message", err, &msg, &msgLength)) {
+        goto END;
     }
 
-    size_t sk_len;
-    unsigned char *privateKey = base64_decode(sk_b64_item->valuestring, &sk_len);
-    if (!privateKey) {
-        strcpy(err, "privateKey is not valid b64");
-        return 0;
-    }
-
-    int nSigned = cc_signTreeEd25519(cond, privateKey, msg, msg_len);
-
-    cJSON *out = cJSON_CreateObject();
+    int nSigned = cc_signTreeEd25519(cond, sk, msg, msgLength);
+    out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "num_signed", cJSON_CreateNumber(nSigned));
     cJSON_AddItemToObject(out, "condition", cc_conditionToJSON(cond));
 
+END:
     cc_free(cond);
     free(msg);
-    free(privateKey);
-
+    free(sk);
     return out;
 }
 

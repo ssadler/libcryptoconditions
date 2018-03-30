@@ -1,15 +1,16 @@
+#include "strings.h"
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
 #include "asn/OCTET_STRING.h"
-#include "strings.h"
-#include "src/threshold.c"
-#include "src/ed25519.c"
-#include "src/prefix.c"
-#include "src/preimage.c"
-#include "src/anon.c"
-#include "src/json_rpc.c"
 #include "cryptoconditions.h"
 #include "src/internal.h"
+#include "src/threshold.c"
+#include "src/prefix.c"
+#include "src/preimage.c"
+#include "src/ed25519.c"
+#include "src/anon.c"
+#include "src/json_rpc.c"
+#include <cJSON.h>
 #include <malloc.h>
 
 
@@ -35,8 +36,8 @@ void appendUriSubtypes(uint32_t mask, unsigned char *buf) {
             } else {
                 strcat(buf, "&subtypes=");
                 strcat(buf, typeRegistry[i]->name);
+                append = 1;
             }
-            append = 1;
         }
     }
 }
@@ -63,7 +64,7 @@ unsigned char *cc_conditionUri(const CC *cond) {
 }
 
 
-static uint32_t getSubtypes(CC *cond) {
+uint32_t cc_typeMask(const CC *cond) {
     uint32_t mask = 1 << cond->type->typeId;
     if (cond->type->hasSubtypes) {
         mask |= cond->type->getSubtypes(cond);
@@ -201,16 +202,21 @@ int cc_visit(CC *cond, CCVisitor visitor) {
 }
 
 
-int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
+int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength, int doHashMsg,
               const unsigned char *condBin, size_t condBinLength) {
     unsigned char targetBinary[1000];
     const size_t binLength = cc_conditionBinary(cond, targetBinary);
     if (0 != memcmp(condBin, targetBinary, binLength)) {
         return 0;
     }
+
     if (!cc_ed25519VerifyTree(cond, msg, msgLength)) {
         return 0;
     }
+
+    unsigned char msgHash[32];
+    if (doHashMsg) sha256(msg, msgLength, msgHash);
+    else memcpy(msgHash, msg, 32);
     return 1;
 }
 
@@ -226,6 +232,11 @@ CC *cc_readConditionBinary(unsigned char *cond_bin, size_t length) {
     CC *cond = mkAnon(asnCond);
     ASN_STRUCT_FREE(asn_DEF_Condition, asnCond);
     return cond;
+}
+
+
+enum CCTypeId cc_typeId(const CC *cond) {
+    return cond->type->typeId;
 }
 
 
