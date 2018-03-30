@@ -51,9 +51,9 @@ unsigned char *cc_conditionUri(const CC *cond) {
 
     unsigned char *out = calloc(1, 1000);
     sprintf(out, "ni:///sha-256;%s?fpt=%s&cost=%lu",
-            encoded, cond->type->name, cc_getCost(cond));
+            encoded, cc_typeName(cond), cc_getCost(cond));
     
-    if (cond->type->hasSubtypes) {
+    if (cond->type->getSubtypes) {
         appendUriSubtypes(cond->type->getSubtypes(cond), out);
     }
 
@@ -61,15 +61,6 @@ unsigned char *cc_conditionUri(const CC *cond) {
     free(encoded);
 
     return out;
-}
-
-
-uint32_t cc_typeMask(const CC *cond) {
-    uint32_t mask = 1 << cond->type->typeId;
-    if (cond->type->hasSubtypes) {
-        mask |= cond->type->getSubtypes(cond);
-    }
-    return mask;
 }
 
 
@@ -130,7 +121,7 @@ size_t cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t length) {
 
 
 static void asnCondition(const CC *cond, Condition_t *asn) {
-    asn->present = cond->type->asnType;
+    asn->present = cc_isAnon(cond) ? cond->conditionType->asnType : cond->type->asnType;
     
     // This may look a little weird - we dont have a reference here to the correct
     // union choice for the condition type, so we just assign everything to the threshold
@@ -235,8 +226,21 @@ CC *cc_readConditionBinary(unsigned char *cond_bin, size_t length) {
 }
 
 
+int cc_isAnon(const CC *cond) {
+    return cond->type->typeId == CC_Condition;
+}
+
+
 enum CCTypeId cc_typeId(const CC *cond) {
-    return cond->type->typeId;
+    return cc_isAnon(cond) ? cond->conditionType->typeId : cond->type->typeId;
+}
+
+
+uint32_t cc_typeMask(const CC *cond) {
+    uint32_t mask = 1 << cc_typeId(cond);
+    if (cond->type->getSubtypes)
+        mask |= cond->type->getSubtypes(cond);
+    return mask;
 }
 
 
@@ -245,9 +249,15 @@ int cc_isFulfilled(const CC *cond) {
 }
 
 
+char *cc_typeName(const CC *cond) {
+    return cc_isAnon(cond) ? cond->conditionType->name : cond->type->name;
+}
+
+
 void cc_free(CC *cond) {
     if (cond)
         cond->type->free(cond);
+    free(cond);
 }
 
 

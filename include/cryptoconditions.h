@@ -18,6 +18,7 @@ struct CCType;
 
 
 enum CCTypeId {
+    CC_Condition = -1,
     CC_Preimage = 0,
     CC_Prefix = 1,
     CC_Threshold = 2,
@@ -31,12 +32,18 @@ enum CCTypeId {
 typedef struct CC {
     struct CCType *type;
     union {
+        // public key types
         struct { unsigned char *publicKey, *signature; };
+        // preimage
         struct { unsigned char *preimage; size_t preimageLength; };
+        // threshold
         struct { long threshold; int size; struct CC **subconditions; };
+        // prefix
         struct { unsigned char *prefix; size_t prefixLength; struct CC *subcondition;
                  unsigned long maxMessageLength; };
-        struct { unsigned char fingerprint[32]; uint32_t subtypes; unsigned long cost; };
+        // anon
+        struct { unsigned char fingerprint[32]; uint32_t subtypes; unsigned long cost; 
+                 struct CCType *conditionType; };
     };
 } CC;
 
@@ -76,6 +83,7 @@ unsigned char*  cc_conditionUri(const CC *cond);
 unsigned char*  cc_jsonRPC(unsigned char *request);
 unsigned long   cc_getCost(const CC *cond);
 enum CCTypeId   cc_typeId(const CC *cond);
+char*           cc_typeName(const CC *cond);
 uint32_t        cc_typeMask(const CC *cond);
 void            cc_free(struct CC *cond);
 

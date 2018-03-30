@@ -21,3 +21,4 @@
 *~
 converter-sample.c
 config.*
+.pytest_cache/
