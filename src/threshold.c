@@ -16,7 +16,7 @@ static uint32_t thresholdSubtypes(const CC *cond) {
     for (int i=0; i<cond->size; i++) {
         mask |= cc_typeMask(cond->subconditions[i]);
     }
-    mask &= ~(1 << cc_thresholdType.typeId);
+    mask &= ~(1 << CC_Threshold);
     return mask;
 }
 
@@ -68,7 +68,8 @@ static unsigned char *thresholdFingerprint(const CC *cond) {
     ThresholdFingerprintContents_t *fp = calloc(1, sizeof(ThresholdFingerprintContents_t));
     fp->threshold = cond->threshold;
     for (int i=0; i<cond->size; i++) {
-        asn_set_add(&fp->subconditions2, asnConditionNew(cond->subconditions[i]));
+        Condition_t *asnCond = asnConditionNew(cond->subconditions[i]);
+        asn_set_add(&fp->subconditions2, asnCond);
     }
     qsort(fp->subconditions2.list.array, cond->size, sizeof(Condition_t*), cmpConditions);
     return hashFingerprintContents(&asn_DEF_ThresholdFingerprintContents, fp);
@@ -199,8 +200,7 @@ static void thresholdFree(CC *cond) {
         cc_free(cond->subconditions[i]);
     }
     free(cond->subconditions);
-    free(cond);
 }
 
 
-struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, 1, &thresholdVisitChildren, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdToJSON, &thresholdFromFulfillment, &thresholdToFulfillment, &thresholdIsFulfilled, &thresholdFree };
+struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, &thresholdVisitChildren, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdToJSON, &thresholdFromFulfillment, &thresholdToFulfillment, &thresholdIsFulfilled, &thresholdFree };
