@@ -100,7 +100,7 @@ size_t cc_conditionBinary(const CC *cond, unsigned char *buf) {
     asnCondition(cond, asn);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Condition, asn, buf, 1000);
     if (rc.encoded == -1) {
-        printf("CONDITION NOT ENCODED\n");
+        fprintf(stderr, "CONDITION NOT ENCODED\n");
         return 0;
     }
     ASN_STRUCT_FREE(asn_DEF_Condition, asn);
@@ -112,7 +112,7 @@ size_t cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t length) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, length);
     if (rc.encoded == -1) {
-        printf("FULFILLMENT NOT ENCODED\n");
+        fprintf(stderr, "FULFILLMENT NOT ENCODED\n");
         return 0;
     }
     ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
@@ -172,14 +172,28 @@ static CC *fulfillmentToCC(Fulfillment_t *ffill) {
 }
 
 
-CC *cc_readFulfillmentBinary(unsigned char *ffill_bin, size_t ffill_bin_len) {
-    Fulfillment_t *ffill = 0;
+CC *cc_readFulfillmentBinary(const unsigned char *ffill_bin, size_t ffill_bin_len) {
     CC *cond = 0;
+    unsigned char *buf = malloc(ffill_bin_len);
+    Fulfillment_t *ffill = 0;
     asn_dec_rval_t rval = ber_decode(0, &asn_DEF_Fulfillment, (void **)&ffill, ffill_bin, ffill_bin_len);
-    if (rval.code == RC_OK) {
-        cond = fulfillmentToCC(ffill);
-        ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
+    if (rval.code != RC_OK) {
+        goto end;
     }
+    // Do malleability check
+    asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, ffill_bin_len);
+    if (rc.encoded == -1) {
+        fprintf(stderr, "FULFILLMENT NOT ENCODED\n");
+        goto end;
+    }
+    if (rc.encoded != ffill_bin_len || 0 != memcmp(ffill_bin, buf, rc.encoded)) {
+        goto end;
+    }
+    
+    cond = fulfillmentToCC(ffill);
+end:
+    free(buf);
+    if (ffill) ASN_STRUCT_FREE(asn_DEF_Fulfillment, ffill);
     return cond;
 }
 
@@ -212,7 +226,7 @@ int cc_verify(const struct CC *cond, const unsigned char *msg, size_t msgLength,
 }
 
 
-CC *cc_readConditionBinary(unsigned char *cond_bin, size_t length) {
+CC *cc_readConditionBinary(const unsigned char *cond_bin, size_t length) {
     Condition_t *asnCond = 0;
     asn_dec_rval_t rval;
     rval = ber_decode(0, &asn_DEF_Condition, (void **)&asnCond, cond_bin, length);

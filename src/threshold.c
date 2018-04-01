@@ -53,13 +53,19 @@ static int thresholdVisitChildren(CC *cond, CCVisitor visitor) {
 }
 
 
-static int cmpConditions(const void *a, const void *b) {
+static int cmpConditionBin(const void *a, const void *b) {
     /* Compare conditions by their ASN binary representation */
     unsigned char bufa[BUF_SIZE], bufb[BUF_SIZE];
     asn_enc_rval_t r0 = der_encode_to_buffer(&asn_DEF_Condition, *(Condition_t**)a, bufa, BUF_SIZE);
     asn_enc_rval_t r1 = der_encode_to_buffer(&asn_DEF_Condition, *(Condition_t**)b, bufb, BUF_SIZE);
-    int diff = r0.encoded - r1.encoded;
-    return diff != 0 ? diff : strcmp(bufa, bufb);
+
+    // below copied from ASN lib
+    size_t commonLen = r0.encoded < r1.encoded ? r0.encoded : r1.encoded;
+    int ret = memcmp(bufa, bufb, commonLen);
+
+    if (ret == 0)
+        return r0.encoded < r1.encoded ? -1 : 1;
+    return 0;
 }
 
 
@@ -71,8 +77,26 @@ static unsigned char *thresholdFingerprint(const CC *cond) {
         Condition_t *asnCond = asnConditionNew(cond->subconditions[i]);
         asn_set_add(&fp->subconditions2, asnCond);
     }
-    qsort(fp->subconditions2.list.array, cond->size, sizeof(Condition_t*), cmpConditions);
+    qsort(fp->subconditions2.list.array, cond->size, sizeof(Condition_t*), cmpConditionBin);
     return hashFingerprintContents(&asn_DEF_ThresholdFingerprintContents, fp);
+}
+
+
+static int cmpConditionCost(const void *a, const void *b) {
+    CC *ca = *((CC**)a);
+    CC *cb = *((CC**)b);
+
+    int out = cc_getCost(ca) - cc_getCost(cb);
+    if (out != 0) return out;
+
+    // Do an additional sort to establish consistent order
+    // between conditions with the same cost.
+    Condition_t *asna = asnConditionNew(ca);
+    Condition_t *asnb = asnConditionNew(cb);
+    out = cmpConditionBin(&asna, &asnb);
+    ASN_STRUCT_FREE(asn_DEF_Condition, asna);
+    ASN_STRUCT_FREE(asn_DEF_Condition, asnb);
+    return out;
 }
 
 
@@ -84,7 +108,7 @@ static CC *thresholdFromFulfillment(const Fulfillment_t *ffill) {
     CC **subconditions = calloc(size, sizeof(CC*));
 
     for (int i=0; i<size; i++) {
-        subconditions[i] = (i < threshold) ? 
+        subconditions[i] = (i < threshold) ?
             fulfillmentToCC(t->subfulfillments.list.array[i]) :
             mkAnon(t->subconditions.list.array[i-threshold]);
 
@@ -104,16 +128,11 @@ static CC *thresholdFromFulfillment(const Fulfillment_t *ffill) {
 }
 
 
-static int cmpByCostDesc(const void *c1, const void *c2) {
-    return cc_getCost(*((CC**)c1)) - cc_getCost(*((CC**)c2));           
-}                                                         
-
-
 static Fulfillment_t *thresholdToFulfillment(const CC *cond) {
     CC *sub;
     Fulfillment_t *fulfillment;
     
-    qsort(cond->subconditions, cond->size, sizeof(CC*), cmpByCostDesc);
+    qsort(cond->subconditions, cond->size, sizeof(CC*), cmpConditionCost);
 
     ThresholdFulfillment_t *tf = calloc(1, sizeof(ThresholdFulfillment_t));
 
@@ -125,7 +144,7 @@ static Fulfillment_t *thresholdToFulfillment(const CC *cond) {
             asn_set_add(&tf->subfulfillments, fulfillment);
             needed--;
         } else {
-            asn_set_add(&tf->subconditions, asnConditionNew(cond->subconditions[i]));
+            asn_set_add(&tf->subconditions, asnConditionNew(sub));
         }
     }
 
