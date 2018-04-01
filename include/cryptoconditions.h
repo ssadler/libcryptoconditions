@@ -87,8 +87,8 @@ size_t          cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t 
 static int      cc_secp256k1VerifyTreeMsg32(const CC *cond, const unsigned char *msg32);
 struct CC*      cc_conditionFromJSON(cJSON *params, unsigned char *err);
 struct CC*      cc_conditionFromJSONString(const unsigned char *json, unsigned char *err);
-struct CC*      cc_readConditionBinary(unsigned char *cond_bin, size_t cond_bin_len);
-struct CC*      cc_readFulfillmentBinary(unsigned char *ffill_bin, size_t ffill_bin_len);
+struct CC*      cc_readConditionBinary(const unsigned char *cond_bin, size_t cond_bin_len);
+struct CC*      cc_readFulfillmentBinary(const unsigned char *ffill_bin, size_t ffill_bin_len);
 struct cJSON*   cc_conditionToJSON(const CC *cond);
 unsigned char*  cc_conditionToJSONString(const CC *cond);
 unsigned char*  cc_conditionUri(const CC *cond);
