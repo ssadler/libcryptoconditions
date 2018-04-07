@@ -7,18 +7,17 @@
 #include "cryptoconditions.h"
 
 
-struct CCType cc_anonType;
+struct CCType CC_AnonType;
 
 
-static CC *mkAnon(const Condition_t *asnCond) {
+CC *mkAnon(const Condition_t *asnCond) {
 
     CCType *realType = getTypeByAsnEnum(asnCond->present);
     if (!realType) {
         printf("Unknown ASN type: %i", asnCond->present);
         return 0;
     }
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_anonType;
+    CC *cond = cc_new(CC_Anon);
     cond->conditionType = realType;
     const CompoundSha256Condition_t *deets = &asnCond->choice.thresholdSha256;
     memcpy(cond->fingerprint, deets->fingerprint.buf, 32);
@@ -71,4 +70,4 @@ static int anonIsFulfilled(const CC *cond) {
 }
 
 
-struct CCType cc_anonType = { -1, "(anon)", Condition_PR_NOTHING, NULL, &anonFingerprint, &anonCost, &anonSubtypes, NULL, &anonToJSON, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };
+struct CCType CC_AnonType = { -1, "(anon)", Condition_PR_NOTHING, NULL, &anonFingerprint, &anonCost, &anonSubtypes, NULL, &anonToJSON, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };

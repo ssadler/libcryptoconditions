@@ -7,7 +7,7 @@
 #include "cryptoconditions.h"
 
 
-struct CCType cc_prefixType;
+struct CCType CC_PrefixType;
 
 
 static int prefixVisitChildren(CC *cond, CCVisitor visitor) {
@@ -42,8 +42,7 @@ static CC *prefixFromFulfillment(const Fulfillment_t *ffill) {
     PrefixFulfillment_t *p = ffill->choice.prefixSha256;
     CC *sub = fulfillmentToCC(p->subfulfillment);
     if (!sub) return 0;
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_prefixType;
+    CC *cond = cc_new(CC_Prefix);
     cond->maxMessageLength = p->maxMessageLength;
     cond->prefix = calloc(1, p->prefix.size);
     memcpy(cond->prefix, p->prefix.buf, p->prefix.size);
@@ -75,7 +74,7 @@ static uint32_t prefixSubtypes(const CC *cond) {
 }
 
 
-static CC *prefixFromJSON(const cJSON *params, unsigned char *err) {
+static CC *prefixFromJSON(const cJSON *params, char *err) {
     cJSON *mml_item = cJSON_GetObjectItem(params, "maxMessageLength");
     if (!cJSON_IsNumber(mml_item)) {
         strcpy(err, "maxMessageLength must be a number");
@@ -88,8 +87,7 @@ static CC *prefixFromJSON(const cJSON *params, unsigned char *err) {
         return NULL;
     }
     
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_prefixType;
+    CC *cond = cc_new(CC_Prefix);
     cond->maxMessageLength = (unsigned long) mml_item->valuedouble;
     cond->subcondition = sub;
     
@@ -122,4 +120,4 @@ static void prefixFree(CC *cond) {
 }
 
 
-struct CCType cc_prefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, &prefixVisitChildren, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixToJSON, &prefixFromFulfillment, &prefixToFulfillment, &prefixIsFulfilled, &prefixFree };
+struct CCType CC_PrefixType = { 1, "prefix-sha-256", Condition_PR_prefixSha256, &prefixVisitChildren, &prefixFingerprint, &prefixCost, &prefixSubtypes, &prefixFromJSON, &prefixToJSON, &prefixFromFulfillment, &prefixToFulfillment, &prefixIsFulfilled, &prefixFree };

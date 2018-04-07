@@ -16,19 +16,19 @@
 #include <malloc.h>
 
 
-static struct CCType *typeRegistry[] = {
-    &cc_preimageType,
-    &cc_prefixType,
-    &cc_thresholdType,
-    NULL, /* &cc_rsaType */
-    &cc_ed25519Type,
-    &cc_secp256k1Type,
+struct CCType *CCTypeRegistry[] = {
+    &CC_PreimageType,
+    &CC_PrefixType,
+    &CC_ThresholdType,
+    NULL, /* &CC_rsaType */
+    &CC_Ed25519Type,
+    &CC_Secp256k1Type,
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, /* 6-14 unused */
-    &cc_evalType
+    &CC_EvalType
 };
 
 
-static int typeRegistryLength = sizeof(typeRegistry) / sizeof(typeRegistry[0]);
+int CCTypeRegistryLength = sizeof(CCTypeRegistry) / sizeof(CCTypeRegistry[0]);
 
 
 void appendUriSubtypes(uint32_t mask, unsigned char *buf) {
@@ -37,10 +37,10 @@ void appendUriSubtypes(uint32_t mask, unsigned char *buf) {
         if (mask & 1 << i) {
             if (append) {
                 strcat(buf, ",");
-                strcat(buf, typeRegistry[i]->name);
+                strcat(buf, CCTypeRegistry[i]->name);
             } else {
                 strcat(buf, "&subtypes=");
-                strcat(buf, typeRegistry[i]->name);
+                strcat(buf, CCTypeRegistry[i]->name);
                 append = 1;
             }
         }
@@ -48,7 +48,7 @@ void appendUriSubtypes(uint32_t mask, unsigned char *buf) {
 }
 
 
-unsigned char *cc_conditionUri(const CC *cond) {
+char *cc_conditionUri(const CC *cond) {
     unsigned char *fp = cond->type->fingerprint(cond);
     if (!fp) return NULL;
 
@@ -69,7 +69,7 @@ unsigned char *cc_conditionUri(const CC *cond) {
 }
 
 
-static ConditionTypes_t asnSubtypes(uint32_t mask) {
+ConditionTypes_t asnSubtypes(uint32_t mask) {
     ConditionTypes_t types;
     uint8_t buf[4] = {0,0,0,0};
     int maxId = 0;
@@ -89,7 +89,7 @@ static ConditionTypes_t asnSubtypes(uint32_t mask) {
 }
 
 
-static uint32_t fromAsnSubtypes(const ConditionTypes_t types) {
+uint32_t fromAsnSubtypes(const ConditionTypes_t types) {
     uint32_t mask = 0;
     for (int i=0; i<types.size*8; i++) {
         if (types.buf[i >> 3] & (1 << (7 - i % 8))) {
@@ -125,7 +125,7 @@ size_t cc_fulfillmentBinary(const CC *cond, unsigned char *buf, size_t length) {
 }
 
 
-static void asnCondition(const CC *cond, Condition_t *asn) {
+void asnCondition(const CC *cond, Condition_t *asn) {
     asn->present = cc_isAnon(cond) ? cond->conditionType->asnType : cond->type->asnType;
     
     // This may look a little weird - we dont have a reference here to the correct
@@ -140,14 +140,14 @@ static void asnCondition(const CC *cond, Condition_t *asn) {
 }
 
 
-static Condition_t *asnConditionNew(const CC *cond) {
+Condition_t *asnConditionNew(const CC *cond) {
     Condition_t *asn = calloc(1, sizeof(Condition_t));
     asnCondition(cond, asn);
     return asn;
 }
 
 
-static Fulfillment_t *asnFulfillmentNew(const CC *cond) {
+Fulfillment_t *asnFulfillmentNew(const CC *cond) {
     return cond->type->toFulfillment(cond);
 }
 
@@ -158,16 +158,16 @@ unsigned long cc_getCost(const CC *cond) {
 
 
 CCType *getTypeByAsnEnum(Condition_PR present) {
-    for (int i=0; i<typeRegistryLength; i++) {
-        if (typeRegistry[i] != NULL && typeRegistry[i]->asnType == present) {
-            return typeRegistry[i];
+    for (int i=0; i<CCTypeRegistryLength; i++) {
+        if (CCTypeRegistry[i] != NULL && CCTypeRegistry[i]->asnType == present) {
+            return CCTypeRegistry[i];
         }
     }
     return NULL;
 }
 
 
-static CC *fulfillmentToCC(Fulfillment_t *ffill) {
+CC *fulfillmentToCC(Fulfillment_t *ffill) {
     CCType *type = getTypeByAsnEnum(ffill->present);
     if (!type) {
         fprintf(stderr, "Unknown fulfillment type: %i\n", ffill->present);
@@ -245,7 +245,7 @@ CC *cc_readConditionBinary(const unsigned char *cond_bin, size_t length) {
     asn_dec_rval_t rval;
     rval = ber_decode(0, &asn_DEF_Condition, (void **)&asnCond, cond_bin, length);
     if (rval.code != RC_OK) {
-        printf("Failed reading condition binary\n");
+        fprintf(stderr, "Failed reading condition binary\n");
         return NULL;
     }
     CC *cond = mkAnon(asnCond);
@@ -255,7 +255,7 @@ CC *cc_readConditionBinary(const unsigned char *cond_bin, size_t length) {
 
 
 int cc_isAnon(const CC *cond) {
-    return cond->type->typeId == CC_Condition;
+    return cond->type->typeId == CC_Anon;
 }
 
 
@@ -279,6 +279,13 @@ int cc_isFulfilled(const CC *cond) {
 
 char *cc_typeName(const CC *cond) {
     return cc_isAnon(cond) ? cond->conditionType->name : cond->type->name;
+}
+
+
+CC *cc_new(int typeId) {
+     CC *cond = calloc(1, sizeof(CC));
+     cond->type = typeId == CC_Anon ? &CC_AnonType : CCTypeRegistry[typeId];
+     return cond;
 }
 
 
