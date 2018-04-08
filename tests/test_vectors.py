@@ -132,16 +132,10 @@ def b64_to_b16(b64):
 
 
 def _read_vectors(name):
-    paths = ['ext/crypto-conditions/test-vectors/valid/%s.json',
-             'tests/vectors/%s.json']
-    for fmt in paths:
-        path = fmt % name
-        if os.path.isfile(path):
-            vectors = json.load(open(path))
-            break
-    else:
-        raise IOError("Vectors file not found: %s.json" % name)
-    return vectors
+    path = 'tests/vectors/%s.json' % name
+    if os.path.isfile(path):
+        return json.load(open(path))
+    raise IOError("Vectors file not found: %s.json" % name)
 
 
 so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
