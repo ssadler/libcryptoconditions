@@ -7,28 +7,21 @@
 #include "cryptoconditions.h"
 
 
-struct CCType cc_preimageType;
+struct CCType CC_PreimageType;
 
 
-static CC *preimageFromJSON(const cJSON *params, unsigned char *err) {
-    cJSON *preimage_item = cJSON_GetObjectItem(params, "preimage");
-    if (!cJSON_IsString(preimage_item)) {
-        strcpy(err, "preimage must be a string");
+static CC *preimageFromJSON(const cJSON *params, char *err) {
+    CC *cond = cc_new(CC_Preimage);
+    if (!jsonGetBase64(params, "preimage", err, &cond->preimage, &cond->preimageLength)) {
+        free(cond);
         return NULL;
     }
-    unsigned char *preimage_b64 = preimage_item->valuestring;
-
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_preimageType;
-    cond->preimage = base64_decode(preimage_b64, &cond->preimageLength);
     return cond;
 }
 
 
 static void preimageToJSON(const CC *cond, cJSON *params) {
-    unsigned char *encoded = base64_encode(cond->preimage, cond->preimageLength);
-    cJSON_AddStringToObject(params, "preimage", encoded);
-    free(encoded);
+    jsonAddBase64(params, "preimage", cond->preimage, cond->preimageLength);
 }
 
 
@@ -45,8 +38,7 @@ static unsigned char *preimageFingerprint(const CC *cond) {
 
 
 static CC *preimageFromFulfillment(const Fulfillment_t *ffill) {
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_preimageType;
+    CC *cond = cc_new(CC_Preimage);
     PreimageFulfillment_t p = ffill->choice.preimageSha256;
     cond->preimage = calloc(1, p.preimage.size);
     memcpy(cond->preimage, p.preimage.buf, p.preimage.size);
@@ -79,4 +71,4 @@ static uint32_t preimageSubtypes(const CC *cond) {
 }
 
 
-struct CCType cc_preimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageFingerprint, &preimageCost, &preimageSubtypes, &preimageFromJSON, &preimageToJSON, &preimageFromFulfillment, &preimageToFulfillment, &preimageIsFulfilled, &preimageFree };
+struct CCType CC_PreimageType = { 0, "preimage-sha-256", Condition_PR_preimageSha256, 0, &preimageFingerprint, &preimageCost, &preimageSubtypes, &preimageFromJSON, &preimageToJSON, &preimageFromFulfillment, &preimageToFulfillment, &preimageIsFulfilled, &preimageFree };

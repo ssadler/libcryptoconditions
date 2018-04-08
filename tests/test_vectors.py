@@ -2,6 +2,7 @@ import json
 import ctypes
 import base64
 import pytest
+import os.path
 from ctypes import *
 
 
@@ -17,6 +18,7 @@ v0010 = '0010_test-basic-threshold-same-fulfillment-twice'
 v0015 = '0015_test-basic-ed25519'
 v0016 = '0016_test-advanced-notarized-receipt'
 v0017 = '0017_test-advanced-notarized-receipt-multiple-notaries'
+
 # These contain RSA conditions which are not implemented yet
 #v0008 = '0008_test-basic-threshold'
 #v0009 = '0009_test-basic-threshold-same-condition-twice'
@@ -91,6 +93,10 @@ def test_json_condition_json_parse(vectors_file):
     assert json.loads(out) == vectors['json']
 
 
+def b16_to_b64(b16):
+    return base64.urlsafe_b64encode(base64.b16decode(b16)).rstrip('=')
+
+
 def decode_base64(data):
     """Decode base64, padding being optional.
 
@@ -104,23 +110,33 @@ def decode_base64(data):
 
 
 def encode_base64(data):
-    return base64.urlsafe_b64encode(data).rstrip(b'=')
+    if type(data) == str:
+        data = data.encode()
+    return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
 
 
 def b16_to_b64(b16):
-    return encode_base64(base64.b16decode(b16)).decode()
+    if type(b16) == str:
+        b16 = b16.encode()
+    return encode_base64(base64.b16decode(b16))
+
+
+def b64_to_b16(b64):
+    #if type(b64) == str:
+    #    b64 = b64.encode()
+    return base64.b16encode(decode_base64(b64)).decode()
 
 
 def _read_vectors(name):
-    path = 'ext/crypto-conditions/test-vectors/valid/%s.json' % name
-    vectors = json.load(open(path))
-    for key in ['conditionBinary', 'fulfillment', 'message']:
-        vectors[key] = b16_to_b64(vectors[key])
-    return vectors
+    path = 'tests/vectors/%s.json' % name
+    if os.path.isfile(path):
+        return json.load(open(path))
+    raise IOError("Vectors file not found: %s.json" % name)
 
 
 so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
 so.cc_jsonRPC.restype = c_char_p
+
 
 
 def jsonRPC(method, params):
@@ -130,5 +146,3 @@ def jsonRPC(method, params):
     })
     out = so.cc_jsonRPC(req.encode())
     return json.loads(out.decode())
-
-

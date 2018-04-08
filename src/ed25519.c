@@ -7,7 +7,7 @@
 #include "cryptoconditions.h"
 
 
-struct CCType cc_ed25519Type;
+struct CCType CC_Ed25519Type;
 
 
 static unsigned char *ed25519Fingerprint(const CC *cond) {
@@ -18,7 +18,7 @@ static unsigned char *ed25519Fingerprint(const CC *cond) {
 
 
 int ed25519Verify(CC *cond, CCVisitor visitor) {
-    if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
+    if (cond->type->typeId != CC_Ed25519Type.typeId) return 1;
     // TODO: test failure mode: empty sig / null pointer
     return ed25519_verify(cond->signature, visitor.msg, visitor.msgLength, cond->publicKey);
 }
@@ -44,7 +44,7 @@ typedef struct CCEd25519SigningData {
  * Visitor that signs an ed25519 condition if it has a matching public key
  */
 static int ed25519Sign(CC *cond, CCVisitor visitor) {
-    if (cond->type->typeId != cc_ed25519Type.typeId) return 1;
+    if (cond->type->typeId != CC_Ed25519Type.typeId) return 1;
     CCEd25519SigningData *signing = (CCEd25519SigningData*) visitor.context;
     if (0 != memcmp(cond->publicKey, signing->pk, 32)) return 1;
     if (!cond->signature) cond->signature = malloc(64);
@@ -58,7 +58,8 @@ static int ed25519Sign(CC *cond, CCVisitor visitor) {
 /*
  * Sign ed25519 conditions in a tree
  */
-int cc_signTreeEd25519(CC *cond, const unsigned char *privateKey, const unsigned char *msg, size_t msgLength) {
+int cc_signTreeEd25519(CC *cond, const unsigned char *privateKey, const unsigned char *msg,
+        const size_t msgLength) {
     unsigned char pk[32], skpk[64];
     ed25519_create_keypair(pk, skpk, privateKey);
 
@@ -74,7 +75,7 @@ static unsigned long ed25519Cost(const CC *cond) {
 }
 
 
-static CC *ed25519FromJSON(const cJSON *params, unsigned char *err) {
+static CC *ed25519FromJSON(const cJSON *params, char *err) {
     size_t binsz;
 
     cJSON *pk_item = cJSON_GetObjectItem(params, "publicKey");
@@ -104,8 +105,7 @@ static CC *ed25519FromJSON(const cJSON *params, unsigned char *err) {
         }
     }
 
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_ed25519Type;
+    CC *cond = cc_new(CC_Ed25519);
     cond->publicKey = pk;
     cond->signature = sig;
     return cond;
@@ -125,8 +125,7 @@ static void ed25519ToJSON(const CC *cond, cJSON *params) {
 
 
 static CC *ed25519FromFulfillment(const Fulfillment_t *ffill) {
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_ed25519Type;
+    CC *cond = cc_new(CC_Ed25519);
     cond->publicKey = malloc(32);
     memcpy(cond->publicKey, ffill->choice.ed25519Sha256.publicKey.buf, 32);
     cond->signature = malloc(64);
@@ -166,4 +165,4 @@ static uint32_t ed25519Subtypes(const CC *cond) {
 }
 
 
-struct CCType cc_ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519IsFulfilled, &ed25519Free };
+struct CCType CC_Ed25519Type = { 4, "ed25519-sha-256", Condition_PR_ed25519Sha256, 0, &ed25519Fingerprint, &ed25519Cost, &ed25519Subtypes, &ed25519FromJSON, &ed25519ToJSON, &ed25519FromFulfillment, &ed25519ToFulfillment, &ed25519IsFulfilled, &ed25519Free };

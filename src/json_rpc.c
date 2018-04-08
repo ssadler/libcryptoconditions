@@ -5,36 +5,31 @@
 
 
 static cJSON *jsonCondition(CC *cond) {
-    unsigned char buf[1000];
-    size_t conditionBinLength = cc_conditionBinary(cond, buf);
-
     cJSON *root = cJSON_CreateObject();
-    unsigned char *uri = cc_conditionUri(cond);
+
+    char *uri = cc_conditionUri(cond);
     cJSON_AddItemToObject(root, "uri", cJSON_CreateString(uri));
     free(uri);
 
-    unsigned char *b64 = base64_encode(buf, conditionBinLength);
-    cJSON_AddItemToObject(root, "bin", cJSON_CreateString(b64));
-    free(b64);
+    unsigned char buf[1000];
+    size_t conditionBinLength = cc_conditionBinary(cond, buf);
+    jsonAddHex(root, "bin", buf, conditionBinLength);
 
     return root;
 }
 
 
 static cJSON *jsonFulfillment(CC *cond) {
-    unsigned char buf[1000000];
+    uint8_t buf[1000000];
     size_t fulfillmentBinLength = cc_fulfillmentBinary(cond, buf, 1000000);
 
     cJSON *root = cJSON_CreateObject();
-    unsigned char *b64 = base64_encode(buf, fulfillmentBinLength);
-    cJSON_AddItemToObject(root, "fulfillment", cJSON_CreateString(b64));
-    free(b64);
-
+    jsonAddHex(root, "fulfillment", buf, fulfillmentBinLength);
     return root;
 }
 
 
-CC *cc_conditionFromJSON(cJSON *params, unsigned char *err) {
+CC *cc_conditionFromJSON(cJSON *params, char *err) {
     if (!params || !cJSON_IsObject(params)) {
         strcpy(err, "Condition params must be an object");
         return NULL;
@@ -44,10 +39,10 @@ CC *cc_conditionFromJSON(cJSON *params, unsigned char *err) {
         strcpy(err, "\"type\" must be a string");
         return NULL;
     }
-    for (int i=0; i<typeRegistryLength; i++) {
-        if (typeRegistry[i] != NULL) {
-            if (0 == strcmp(typeName->valuestring, typeRegistry[i]->name)) {
-                return typeRegistry[i]->fromJSON(params, err);
+    for (int i=0; i<CCTypeRegistryLength; i++) {
+        if (CCTypeRegistry[i] != NULL) {
+            if (0 == strcmp(typeName->valuestring, CCTypeRegistry[i]->name)) {
+                return CCTypeRegistry[i]->fromJSON(params, err);
             }
         }
     }
@@ -56,7 +51,7 @@ CC *cc_conditionFromJSON(cJSON *params, unsigned char *err) {
 }
 
 
-CC *cc_conditionFromJSONString(const unsigned char *data, unsigned char *err) {
+CC *cc_conditionFromJSONString(const char *data, char *err) {
     cJSON *params = cJSON_Parse(data);
     CC *out = cc_conditionFromJSON(params, err);
     cJSON_Delete(params);
@@ -64,7 +59,7 @@ CC *cc_conditionFromJSONString(const unsigned char *data, unsigned char *err) {
 }
 
 
-static cJSON *jsonEncodeCondition(cJSON *params, unsigned char *err) {
+static cJSON *jsonEncodeCondition(cJSON *params, char *err) {
     CC *cond = cc_conditionFromJSON(params, err);
     cJSON *out = NULL;
     if (cond != NULL) {
@@ -75,7 +70,7 @@ static cJSON *jsonEncodeCondition(cJSON *params, unsigned char *err) {
 }
 
 
-static cJSON *jsonEncodeFulfillment(cJSON *params, unsigned char *err) {
+static cJSON *jsonEncodeFulfillment(cJSON *params, char *err) {
     CC *cond = cc_conditionFromJSON(params, err);
     cJSON *out = NULL;
     if (cond != NULL) {
@@ -86,21 +81,21 @@ static cJSON *jsonEncodeFulfillment(cJSON *params, unsigned char *err) {
 }
 
 
-static cJSON *jsonErr(unsigned char *err) {
+static cJSON *jsonErr(char *err) {
     cJSON *out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "error", cJSON_CreateString(err));
     return out;
 }
 
 
-static cJSON *jsonVerifyFulfillment(cJSON *params, unsigned char *err) {
+static cJSON *jsonVerifyFulfillment(cJSON *params, char *err) {
     unsigned char *ffill_bin = 0, *msg = 0, *cond_bin = 0;
     size_t ffill_bin_len, msg_len, cond_bin_len;
     cJSON *out = 0;
 
-    if (!(jsonGetBase64(params, "fulfillment", err, &ffill_bin, &ffill_bin_len) &&
-          jsonGetBase64(params, "message", err, &msg, &msg_len) &&
-          jsonGetBase64(params, "condition", err, &cond_bin, &cond_bin_len)))
+    if (!(jsonGetHex(params, "fulfillment", err, &ffill_bin, &ffill_bin_len) &&
+          jsonGetHex(params, "message", err, &msg, &msg_len) &&
+          jsonGetHex(params, "condition", err, &cond_bin, &cond_bin_len)))
         goto END;
 
     CC *cond = cc_readFulfillmentBinary(ffill_bin, ffill_bin_len);
@@ -110,7 +105,7 @@ static cJSON *jsonVerifyFulfillment(cJSON *params, unsigned char *err) {
         goto END;
     }
 
-    int valid = cc_verify(cond, msg, msg_len, 1, cond_bin, cond_bin_len);
+    int valid = cc_verify(cond, msg, msg_len, cond_bin, cond_bin_len);
     cc_free(cond);
     out = cJSON_CreateObject();
     cJSON_AddItemToObject(out, "valid", cJSON_CreateBool(valid));
@@ -121,10 +116,10 @@ END:
 }
 
 
-static cJSON *jsonDecodeFulfillment(cJSON *params, unsigned char *err) {
+static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
     size_t ffill_bin_len;
     unsigned char *ffill_bin;
-    if (!jsonGetBase64(params, "fulfillment", err, &ffill_bin, &ffill_bin_len))
+    if (!jsonGetHex(params, "fulfillment", err, &ffill_bin, &ffill_bin_len))
         return NULL;
 
     CC *cond = cc_readFulfillmentBinary(ffill_bin, ffill_bin_len);
@@ -139,10 +134,10 @@ static cJSON *jsonDecodeFulfillment(cJSON *params, unsigned char *err) {
 }
 
 
-static cJSON *jsonDecodeCondition(cJSON *params, unsigned char *err) {
+static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
     size_t cond_bin_len;
     unsigned char *cond_bin;
-    if (!jsonGetBase64(params, "bin", err, &cond_bin, &cond_bin_len))
+    if (!jsonGetHex(params, "bin", err, &cond_bin, &cond_bin_len))
         return NULL;
 
     CC *cond = cc_readConditionBinary(cond_bin, cond_bin_len);
@@ -160,7 +155,7 @@ static cJSON *jsonDecodeCondition(cJSON *params, unsigned char *err) {
 }
 
 
-static cJSON *jsonSignTreeEd25519(cJSON *params, unsigned char *err) {
+static cJSON *jsonSignTreeEd25519(cJSON *params, char *err) {
     cJSON *out = 0;
     unsigned char *msg = 0, *sk = 0;
 
@@ -171,7 +166,7 @@ static cJSON *jsonSignTreeEd25519(cJSON *params, unsigned char *err) {
     }
 
     size_t skLength;
-    if (!jsonGetBase64(params, "privateKey", err, &sk, &skLength)) {
+    if (!jsonGetHex(params, "privateKey", err, &sk, &skLength)) {
         goto END;
     }
 
@@ -180,7 +175,7 @@ static cJSON *jsonSignTreeEd25519(cJSON *params, unsigned char *err) {
     }
     
     size_t msgLength;
-    if (!jsonGetBase64(params, "message", err, &msg, &msgLength)) {
+    if (!jsonGetHex(params, "message", err, &msg, &msgLength)) {
         goto END;
     }
 
@@ -205,22 +200,22 @@ cJSON *cc_conditionToJSON(const CC *cond) {
 }
 
 
-unsigned char *cc_conditionToJSONString(const CC *cond) {
+char *cc_conditionToJSONString(const CC *cond) {
     assert(cond != NULL);
     cJSON *params = cc_conditionToJSON(cond);
-    unsigned char *out = cJSON_Print(params);
+    char *out = cJSON_Print(params);
     cJSON_Delete(params);
     return out;
 }
 
 
-static cJSON *jsonListMethods(cJSON *params, unsigned char *err);
+static cJSON *jsonListMethods(cJSON *params, char *err);
 
 
 typedef struct JsonMethod {
-    unsigned char *name;
-    cJSON* (*method)(cJSON *params, unsigned char *err);
-    unsigned char *description;
+    char *name;
+    cJSON* (*method)(cJSON *params, char *err);
+    char *description;
 } JsonMethod;
 
 
@@ -238,7 +233,7 @@ static JsonMethod cc_jsonMethods[] = {
 static int nJsonMethods = sizeof(cc_jsonMethods) / sizeof(*cc_jsonMethods);
 
 
-static cJSON *jsonListMethods(cJSON *params, unsigned char *err) {
+static cJSON *jsonListMethods(cJSON *params, char *err) {
     cJSON *list = cJSON_CreateArray();
     for (int i=0; i<nJsonMethods; i++) {
         JsonMethod method = cc_jsonMethods[i];
@@ -253,7 +248,7 @@ static cJSON *jsonListMethods(cJSON *params, unsigned char *err) {
 }
 
 
-static cJSON* execJsonRPC(cJSON *root, unsigned char *err) {
+static cJSON* execJsonRPC(cJSON *root, char *err) {
     cJSON *method_item = cJSON_GetObjectItem(root, "method");
 
     if (!cJSON_IsString(method_item)) {
@@ -276,8 +271,8 @@ static cJSON* execJsonRPC(cJSON *root, unsigned char *err) {
 }
 
 
-unsigned char *cc_jsonRPC(unsigned char* input) {
-    unsigned char err[1000] = "\0";
+char *cc_jsonRPC(char* input) {
+    char err[1000] = "\0";
     cJSON *out;
     cJSON *root = cJSON_Parse(input);
     if (!root) out = jsonErr("Error parsing JSON request");
@@ -285,7 +280,7 @@ unsigned char *cc_jsonRPC(unsigned char* input) {
         out = execJsonRPC(root, err);
         if (NULL == out) out = jsonErr(err);
     }
-    unsigned char *res = cJSON_Print(out);
+    char *res = cJSON_Print(out);
     cJSON_Delete(out);
     cJSON_Delete(root);
     return res;

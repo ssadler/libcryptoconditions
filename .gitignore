@@ -21,4 +21,5 @@
 *~
 converter-sample.c
 config.*
-.pytest_cache/
+.pytest_cache
+src/asn/asn_system.h

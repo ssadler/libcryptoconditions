@@ -8,7 +8,7 @@
 #include "internal.h"
 
 
-struct CCType cc_thresholdType;
+struct CCType CC_ThresholdType;
 
 
 static uint32_t thresholdSubtypes(const CC *cond) {
@@ -44,7 +44,7 @@ static unsigned long thresholdCost(const CC *cond) {
 
 
 static int thresholdVisitChildren(CC *cond, CCVisitor visitor) {
-    for (int i=0; i<cond->threshold; i++) {
+    for (int i=0; i<cond->size; i++) {
         if (!cc_visit(cond->subconditions[i], visitor)) {
             return 0;
         }
@@ -119,8 +119,7 @@ static CC *thresholdFromFulfillment(const Fulfillment_t *ffill) {
         }
     }
 
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_thresholdType;
+    CC *cond = cc_new(CC_Threshold);
     cond->threshold = threshold;
     cond->size = size;
     cond->subconditions = subconditions;
@@ -131,15 +130,19 @@ static CC *thresholdFromFulfillment(const Fulfillment_t *ffill) {
 static Fulfillment_t *thresholdToFulfillment(const CC *cond) {
     CC *sub;
     Fulfillment_t *fulfillment;
+
+    // Make a copy of subconditions so we can leave original order alone
+    CC** subconditions = malloc(cond->size*sizeof(CC*));
+    memcpy(subconditions, cond->subconditions, cond->size*sizeof(CC*));
     
-    qsort(cond->subconditions, cond->size, sizeof(CC*), cmpConditionCost);
+    qsort(subconditions, cond->size, sizeof(CC*), cmpConditionCost);
 
     ThresholdFulfillment_t *tf = calloc(1, sizeof(ThresholdFulfillment_t));
 
     int needed = cond->threshold;
 
     for (int i=0; i<cond->size; i++) {
-        sub = cond->subconditions[i];
+        sub = subconditions[i];
         if (needed && (fulfillment = asnFulfillmentNew(sub))) {
             asn_set_add(&tf->subfulfillments, fulfillment);
             needed--;
@@ -147,6 +150,8 @@ static Fulfillment_t *thresholdToFulfillment(const CC *cond) {
             asn_set_add(&tf->subconditions, asnConditionNew(sub));
         }
     }
+
+    free(subconditions);
 
     if (needed) {
         ASN_STRUCT_FREE(asn_DEF_ThresholdFulfillment, tf);
@@ -160,7 +165,7 @@ static Fulfillment_t *thresholdToFulfillment(const CC *cond) {
 }
 
 
-static CC *thresholdFromJSON(const cJSON *params, unsigned char *err) {
+static CC *thresholdFromJSON(const cJSON *params, char *err) {
     cJSON *threshold_item = cJSON_GetObjectItem(params, "threshold");
     if (!cJSON_IsNumber(threshold_item)) {
         strcpy(err, "threshold must be a number");
@@ -173,8 +178,7 @@ static CC *thresholdFromJSON(const cJSON *params, unsigned char *err) {
         return NULL;
     }
 
-    CC *cond = calloc(1, sizeof(CC));
-    cond->type = &cc_thresholdType;
+    CC *cond = cc_new(CC_Threshold);
     cond->threshold = (long) threshold_item->valuedouble;
     cond->size = cJSON_GetArraySize(subfulfillments_item);
     cond->subconditions = calloc(cond->size, sizeof(CC*));
@@ -202,8 +206,8 @@ static void thresholdToJSON(const CC *cond, cJSON *params) {
 
 static int thresholdIsFulfilled(const CC *cond) {
     int nFulfilled = 0;
-    for (int i=0; i<cond->threshold; i++) {
-        if (!cc_isFulfilled(cond->subconditions[i])) {
+    for (int i=0; i<cond->size; i++) {
+        if (cc_isFulfilled(cond->subconditions[i])) {
             nFulfilled++;
         }
         if (nFulfilled == cond->threshold) {
@@ -222,4 +226,4 @@ static void thresholdFree(CC *cond) {
 }
 
 
-struct CCType cc_thresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, &thresholdVisitChildren, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdToJSON, &thresholdFromFulfillment, &thresholdToFulfillment, &thresholdIsFulfilled, &thresholdFree };
+struct CCType CC_ThresholdType = { 2, "threshold-sha-256", Condition_PR_thresholdSha256, &thresholdVisitChildren, &thresholdFingerprint, &thresholdCost, &thresholdSubtypes, &thresholdFromJSON, &thresholdToJSON, &thresholdFromFulfillment, &thresholdToFulfillment, &thresholdIsFulfilled, &thresholdFree };

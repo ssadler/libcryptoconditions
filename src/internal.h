@@ -1,3 +1,5 @@
+#include <Condition.h>
+#include <Fulfillment.h>
 #include "include/cJSON.h"
 #include "asn/asn_application.h"
 #include "cryptoconditions.h"
@@ -13,18 +15,21 @@ extern "C" {
 
 #define BUF_SIZE 1024 * 1024
 
+typedef char bool;
+
 
 /*
- * Condition Type */
+ * Condition Type
+ */
 typedef struct CCType {
     int typeId;
-    unsigned char name[100];
+    char name[100];
     Condition_PR asnType;
     int (*visitChildren)(CC *cond, CCVisitor visitor);
     unsigned char *(*fingerprint)(const CC *cond);
     unsigned long (*getCost)(const CC *cond);
     uint32_t (*getSubtypes)(const  CC *cond);
-    CC *(*fromJSON)(const cJSON *params, unsigned char *err);
+    CC *(*fromJSON)(const cJSON *params, char *err);
     void (*toJSON)(const CC *cond, cJSON *params);
     CC *(*fromFulfillment)(const Fulfillment_t *ffill);
     Fulfillment_t *(*toFulfillment)(const CC *cond);
@@ -36,21 +41,20 @@ typedef struct CCType {
 /*
  * Globals
  */
-static struct CCType *typeRegistry[];
-static int typeRegistryLength;
+struct CCType *CCTypeRegistry[32];
+int CCTypeRegistryLength;
 
 
 /*
  * Internal API
  */
-static uint32_t fromAsnSubtypes(ConditionTypes_t types);
-static CC *mkAnon(const Condition_t *asnCond);
-static void asnCondition(const CC *cond, Condition_t *asn);
-static Condition_t *asnConditionNew(const CC *cond);
-static Fulfillment_t *asnFulfillmentNew(const CC *cond);
-static cJSON *jsonEncodeCondition(cJSON *params, unsigned char *err);
-static struct CC *fulfillmentToCC(Fulfillment_t *ffill);
-static struct CCType *getTypeByAsnEnum(Condition_PR present);
+uint32_t fromAsnSubtypes(ConditionTypes_t types);
+CC *mkAnon(const Condition_t *asnCond);
+void asnCondition(const CC *cond, Condition_t *asn);
+Condition_t *asnConditionNew(const CC *cond);
+Fulfillment_t *asnFulfillmentNew(const CC *cond);
+struct CC *fulfillmentToCC(Fulfillment_t *ffill);
+struct CCType *getTypeByAsnEnum(Condition_PR present);
 
 
 /*
@@ -60,11 +64,17 @@ unsigned char *base64_encode(const unsigned char *data, size_t input_length);
 unsigned char *base64_decode(const unsigned char *data_, size_t *output_length);
 unsigned char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp);
 void dumpStr(unsigned char *str, size_t len);
-int checkString(const cJSON *value, unsigned char *key, unsigned char *err);
-int checkDecodeBase64(const cJSON *value, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
-int jsonGetBase64(const cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
-int jsonGetBase64Optional(const cJSON *params, unsigned char *key, unsigned char *err, unsigned char **data, size_t *size);
-void jsonAddBase64(cJSON *params, unsigned char *key, unsigned char *bin, size_t size);
+int checkString(const cJSON *value, char *key, char *err);
+int checkDecodeBase64(const cJSON *value, char *key, char *err, unsigned char **data, size_t *size);
+int jsonGetBase64(const cJSON *params, char *key, char *err, unsigned char **data, size_t *size);
+int jsonGetBase64Optional(const cJSON *params, char *key, char *err, unsigned char **data, size_t *size);
+void jsonAddBase64(cJSON *params, char *key, unsigned char *bin, size_t size);
+char* cc_hex_encode(const uint8_t *bin, size_t len);
+uint8_t* cc_hex_decode(const char* hex);
+bool checkDecodeHex(const cJSON *params, char *key, char *err, uint8_t **data, size_t *size);
+bool jsonGetHex(const cJSON *params, char *key, char *err, unsigned char **data, size_t *size);
+void jsonAddHex(cJSON *params, char *key, uint8_t *bin, size_t size);
+int jsonGetHexOptional(const cJSON *params, char *key, char *err, unsigned char **data, size_t *size);
 
 
 #ifdef __cplusplus

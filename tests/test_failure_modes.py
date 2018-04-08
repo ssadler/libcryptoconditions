@@ -1,7 +1,7 @@
 import json
 import ctypes
 import base64
-from test_vectors import jsonRPC, so, decode_base64 as d64, encode_base64 as e64
+from .test_vectors import jsonRPC, so, decode_base64 as d64, encode_base64 as e64
 
 
 '''
@@ -55,6 +55,11 @@ def test_decode_invalid_condition():
 
     # Bogus type ID
     assert 0 == cc_rcb(unhex('bf630c80016181030186a082020700'))
+
+
+def test_validate_empty_sigs():
+    #// TODO: test failure mode: empty sig / null pointer
+    pass
 
 
 def test_malleability_checked():
