@@ -1,7 +1,7 @@
 #include "cryptoconditions.h"
 #include "internal.h"
 #include <cJSON.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 
 static cJSON *jsonCondition(CC *cond) {

@@ -13,7 +13,7 @@
 #include "src/eval.c"
 #include "src/json_rpc.c"
 #include <cJSON.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 
 struct CCType *CCTypeRegistry[] = {
