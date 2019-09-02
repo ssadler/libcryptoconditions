@@ -10,7 +10,7 @@ from ctypes import *
 
 
 so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
-so.jsonRPC.restype = c_char_p
+so.cc_jsonRPC.restype = c_char_p
 
 
 def jsonRPC(method, params, load=True):
