@@ -199,7 +199,7 @@ unsigned char *hashFingerprintContents(asn_TYPE_descriptor_t *asnType, void *fp)
     asn_enc_rval_t rc = der_encode_to_buffer(asnType, fp, buf, BUF_SIZE);
     ASN_STRUCT_FREE(*asnType, fp);
     if (rc.encoded < 1) {
-        fprintf(stderr, "Encoding fingerprint failed\n");
+        fprintf(stderr, "Encoding fingerprint contents failed, likely too large\n");
         return 0;
     }
     unsigned char *hash = malloc(32);
