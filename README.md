@@ -17,7 +17,13 @@ make
 
 ## Status
 
-JSON interface may not be particularly safe. The rest is pretty good now.
+JSON interface may not be particularly safe.
+
+## Testing
+
+After building:
+
+`make test`
 
 ## Embedding
 
