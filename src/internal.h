@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright © 2014-2018 The SuperNET Developers.                             *
+ * Copyright © 2014-2019 The SuperNET Developers.                             *
  *                                                                            *
  * See the AUTHORS, DEVELOPER-AGREEMENT and LICENSE files at                  *
  * the top-level directory of this distribution for the individual copyright  *
@@ -13,11 +13,9 @@
  *                                                                            *
  ******************************************************************************/
 
-#include <Condition.h>
-#include <Fulfillment.h>
-#include "include/cJSON.h"
+#include "asn/Condition.h"
+#include "asn/Fulfillment.h"
 #include "asn/asn_application.h"
-#include "cryptoconditions.h"
 
 #ifndef INTERNAL_H
 #define INTERNAL_H
@@ -28,9 +26,18 @@ extern "C" {
 #endif
 
 
-#define BUF_SIZE 4096
+#define BUF_SIZE 4096 
 
 typedef char bool;
+
+
+/*
+ * Fulfillment Flags
+ */
+
+typedef enum {
+    MixedMode = 1 << 0
+} FulfillmentFlags;
 
 
 /*
@@ -46,8 +53,8 @@ typedef struct CCType {
     uint32_t (*getSubtypes)(const  CC *cond);
     CC *(*fromJSON)(const cJSON *params, char *err);
     void (*toJSON)(const CC *cond, cJSON *params);
-    CC *(*fromFulfillment)(const Fulfillment_t *ffill);
-    Fulfillment_t *(*toFulfillment)(const CC *cond);
+    CC *(*fromFulfillment)(const Fulfillment_t *ffill, const FulfillmentFlags flags);
+    Fulfillment_t *(*toFulfillment)(const CC *cond, const FulfillmentFlags flags);
     int (*isFulfilled)(const CC *cond);
     void (*free)(struct CC *cond);
 } CCType;
@@ -56,7 +63,7 @@ typedef struct CCType {
 /*
  * Globals
  */
-extern struct CCType *CCTypeRegistry[32];
+extern struct CCType *CCTypeRegistry[];
 extern int CCTypeRegistryLength;
 
 
@@ -65,10 +72,10 @@ extern int CCTypeRegistryLength;
  */
 uint32_t fromAsnSubtypes(ConditionTypes_t types);
 CC *mkAnon(const Condition_t *asnCond);
-bool asnCondition(const CC *cond, Condition_t *asn);
+void asnCondition(const CC *cond, Condition_t *asn);
 Condition_t *asnConditionNew(const CC *cond);
-Fulfillment_t *asnFulfillmentNew(const CC *cond);
-struct CC *fulfillmentToCC(Fulfillment_t *ffill);
+Fulfillment_t *asnFulfillmentNew(const CC *cond, const FulfillmentFlags flags);
+struct CC *fulfillmentToCC(Fulfillment_t *ffill, const FulfillmentFlags flags);
 struct CCType *getTypeByAsnEnum(Condition_PR present);
 
 

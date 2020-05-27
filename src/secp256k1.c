@@ -1,3 +1,18 @@
+/******************************************************************************
+ * Copyright © 2014-2019 The SuperNET Developers.                             *
+ *                                                                            *
+ * See the AUTHORS, DEVELOPER-AGREEMENT and LICENSE files at                  *
+ * the top-level directory of this distribution for the individual copyright  *
+ * holder information and the developer policies on copyright and licensing.  *
+ *                                                                            *
+ * Unless otherwise agreed in a custom licensing agreement, no part of the    *
+ * SuperNET software, including this file may be copied, modified, propagated *
+ * or distributed except according to the terms contained in the LICENSE file *
+ *                                                                            *
+ * Removal or modification of this copyright notice is prohibited.            *
+ *                                                                            *
+ ******************************************************************************/
+
 #define _GNU_SOURCE 1
 
 #if __linux
@@ -14,9 +29,9 @@
 #include "asn/Secp256k1Fulfillment.h"
 #include "asn/Secp256k1FingerprintContents.h"
 #include "asn/OCTET_STRING.h"
-#include "include/cJSON.h"
+//#include <cJSON.h>
 #include "include/secp256k1/include/secp256k1.h"
-#include "cryptoconditions.h"
+//#include "../include/cryptoconditions.h"
 #include "internal.h"
 
 
@@ -45,13 +60,15 @@ void lockSign() {
     int read = (int) fread(&ent, 1, 32, fp);
     fclose(fp);
 #endif
-    if (read != 32) {
-        fprintf(stderr, "Could not read 32 bytes entropy from system\n");
-        exit(1);
+    if (read != 32)
+    {
+        int32_t i;
+        for (i=0; i<32; i++)
+            ((uint8_t *)ent)[i] = rand();
     }
     if (!secp256k1_context_randomize(ec_ctx_sign, ent)) {
         fprintf(stderr, "Could not randomize secp256k1 context\n");
-        exit(1);
+        exit(-1);
     }
 }
 
@@ -73,6 +90,7 @@ void initVerify() {
 
 static unsigned char *secp256k1Fingerprint(const CC *cond) {
     Secp256k1FingerprintContents_t *fp = calloc(1, sizeof(Secp256k1FingerprintContents_t));
+    //fprintf(stderr,"secpfinger %p %p size %d vs %d\n",fp,cond->publicKey,(int32_t)sizeof(Secp256k1FingerprintContents_t),(int32_t)SECP256K1_PK_SIZE);
     OCTET_STRING_fromBuf(&fp->publicKey, cond->publicKey, SECP256K1_PK_SIZE);
     return hashFingerprintContents(&asn_DEF_Secp256k1FingerprintContents, fp);
 }
@@ -139,7 +157,11 @@ static int secp256k1Sign(CC *cond, CCVisitor visitor) {
     int rc = secp256k1_ecdsa_sign(ec_ctx_sign, &sig, visitor.msg, signing->sk, NULL, NULL);
     unlockSign();
 
-    if (rc != 1) return 0;
+    if (rc != 1)
+    {
+        fprintf(stderr,"secp256k1Sign rc.%d\n",rc);
+        return 0;
+    }
 
     if (!cond->signature) cond->signature = calloc(1, SECP256K1_SIG_SIZE);
     secp256k1_ecdsa_signature_serialize_compact(ec_ctx_verify, cond->signature, &sig);
@@ -170,16 +192,23 @@ int cc_signTreeSecp256k1Msg32(CC *cond, const unsigned char *privateKey, const u
     }
 
     // serialize pubkey
-    unsigned char *publicKey = calloc(1, SECP256K1_PK_SIZE);
+    //unsigned char *publicKey = calloc(1, SECP256K1_PK_SIZE);
+    unsigned char publicKey[SECP256K1_PK_SIZE];
     size_t ol = SECP256K1_PK_SIZE;
     secp256k1_ec_pubkey_serialize(ec_ctx_verify, publicKey, &ol, &spk, SECP256K1_EC_COMPRESSED);
-
+    if ( 0 )
+    {
+        int32_t z;
+        for (z=0; z<33; z++)
+            fprintf(stderr,"%02x",publicKey[z]);
+        fprintf(stderr," pubkey\n");
+    }
     // sign
     CCSecp256k1SigningData signing = {publicKey, privateKey, 0};
     CCVisitor visitor = {&secp256k1Sign, msg32, 32, &signing};
     cc_visit(cond, visitor);
 
-    free(publicKey);
+    //free(publicKey);
     return signing.nSigned;
 }
 
@@ -246,13 +275,13 @@ static void secp256k1ToJSON(const CC *cond, cJSON *params) {
 }
 
 
-static CC *secp256k1FromFulfillment(const Fulfillment_t *ffill) {
+static CC *secp256k1FromFulfillment(const Fulfillment_t *ffill, FulfillmentFlags _flags) {
     return cc_secp256k1Condition(ffill->choice.secp256k1Sha256.publicKey.buf,
                                  ffill->choice.secp256k1Sha256.signature.buf);
 }
 
 
-static Fulfillment_t *secp256k1ToFulfillment(const CC *cond) {
+static Fulfillment_t *secp256k1ToFulfillment(const CC *cond, FulfillmentFlags _flags) {
     if (!cond->signature) {
         return NULL;
     }

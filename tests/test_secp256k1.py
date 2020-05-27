@@ -61,12 +61,6 @@ def test_sign_secp256k1_fail():
         }
     }
 
-def test_decode():
-    ffill = 'a22c802011160cfe3d7425994a5ce77922d466762e5925fe3e8eee278d6e6dac2735611f81031210008203000401'
-    print(jsonRPC('decodeCondition', {
-        'bin': ffill
-        }));
-
 
 def encode_b16(s):
     return base64.b16encode(s).decode()

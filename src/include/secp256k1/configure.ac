@@ -130,7 +130,7 @@ AC_ARG_ENABLE(module_ecdh,
     [enable_module_ecdh=no])
 
 AC_ARG_ENABLE(module_recovery,
-    AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module (default is yes)]),
+    AS_HELP_STRING([--enable-module-recovery],[enable ECDSA pubkey recovery module (default is now yes)]),
     [enable_module_recovery=$enableval],
     [enable_module_recovery=yes])
 

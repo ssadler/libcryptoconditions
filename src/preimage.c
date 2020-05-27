@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright © 2014-2018 The SuperNET Developers.                             *
+ * Copyright © 2014-2019 The SuperNET Developers.                             *
  *                                                                            *
  * See the AUTHORS, DEVELOPER-AGREEMENT and LICENSE files at                  *
  * the top-level directory of this distribution for the individual copyright  *
@@ -16,9 +16,9 @@
 #include "asn/Condition.h"
 #include "asn/Fulfillment.h"
 #include "asn/OCTET_STRING.h"
-#include "include/cJSON.h"
+//#include <cJSON.h>
 #include "include/sha256.h"
-#include "cryptoconditions.h"
+//#include "../include/cryptoconditions.h"
 
 
 struct CCType CC_PreimageType;
@@ -46,12 +46,13 @@ static unsigned long preimageCost(const CC *cond) {
 
 static unsigned char *preimageFingerprint(const CC *cond) {
     unsigned char *hash = calloc(1, 32);
+    //fprintf(stderr,"preimage %p %p\n",hash,cond->preimage);
     sha256(cond->preimage, cond->preimageLength, hash);
     return hash;
 }
 
 
-static CC *preimageFromFulfillment(const Fulfillment_t *ffill) {
+static CC *preimageFromFulfillment(const Fulfillment_t *ffill, FulfillmentFlags _flags) {
     CC *cond = cc_new(CC_Preimage);
     PreimageFulfillment_t p = ffill->choice.preimageSha256;
     cond->preimage = calloc(1, p.preimage.size);
@@ -61,7 +62,7 @@ static CC *preimageFromFulfillment(const Fulfillment_t *ffill) {
 }
 
 
-static Fulfillment_t *preimageToFulfillment(const CC *cond) {
+static Fulfillment_t *preimageToFulfillment(const CC *cond, FulfillmentFlags _flags) {
     Fulfillment_t *ffill = calloc(1, sizeof(Fulfillment_t));
     ffill->present = Fulfillment_PR_preimageSha256;
     PreimageFulfillment_t *pf = &ffill->choice.preimageSha256;

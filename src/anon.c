@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright © 2014-2018 The SuperNET Developers.                             *
+ * Copyright © 2014-2019 The SuperNET Developers.                             *
  *                                                                            *
  * See the AUTHORS, DEVELOPER-AGREEMENT and LICENSE files at                  *
  * the top-level directory of this distribution for the individual copyright  *
@@ -17,11 +17,23 @@
 #include "asn/Fulfillment.h"
 #include "asn/PrefixFingerprintContents.h"
 #include "asn/OCTET_STRING.h"
-#include "include/cJSON.h"
-#include "cryptoconditions.h"
+#include "../include/cryptoconditions.h"
 
 
 struct CCType CC_AnonType;
+
+
+CC* cc_anon(const CC *cond) {
+    CC *out = cc_new(CC_Anon);
+    out->conditionType = cond->type;
+    out->cost = cc_getCost(cond);
+    out->subtypes = cond->type->getSubtypes(cond);
+
+    unsigned char *fp = cond->type->fingerprint(cond);
+    memcpy(out->fingerprint, fp, 32);
+    free(fp);
+    return out;
+}
 
 
 CC *mkAnon(const Condition_t *asnCond) {
@@ -55,6 +67,7 @@ static void anonToJSON(const CC *cond, cJSON *params) {
 
 static unsigned char *anonFingerprint(const CC *cond) {
     unsigned char *out = calloc(1, 32);
+    //fprintf(stderr,"anon fingerprint %p %p\n",out,cond->fingerprint);
     memcpy(out, cond->fingerprint, 32);
     return out;
 }
@@ -70,7 +83,7 @@ static uint32_t anonSubtypes(const CC *cond) {
 }
 
 
-static Fulfillment_t *anonFulfillment(const CC *cond) {
+static Fulfillment_t *anonFulfillment(const CC *cond, FulfillmentFlags _flags) {
     return NULL;
 }
 

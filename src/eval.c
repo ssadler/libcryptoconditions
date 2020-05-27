@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright © 2014-2018 The SuperNET Developers.                             *
+ * Copyright © 2014-2019 The SuperNET Developers.                             *
  *                                                                            *
  * See the AUTHORS, DEVELOPER-AGREEMENT and LICENSE files at                  *
  * the top-level directory of this distribution for the individual copyright  *
@@ -17,9 +17,9 @@
 #include "asn/Fulfillment.h"
 #include "asn/EvalFulfillment.h"
 #include "asn/OCTET_STRING.h"
-#include "cryptoconditions.h"
+//#include "../include/cryptoconditions.h"
 #include "internal.h"
-#include "include/cJSON.h"
+//#include <cJSON.h>
 
 
 struct CCType CC_EvalType;
@@ -27,6 +27,7 @@ struct CCType CC_EvalType;
 
 static unsigned char *evalFingerprint(const CC *cond) {
     unsigned char *hash = calloc(1, 32);
+    //fprintf(stderr,"evalfingerprint %p %p\n",hash,cond->code);
     sha256(cond->code, cond->codeLength, hash);
     return hash;
 }
@@ -68,7 +69,7 @@ static CC *evalFromFulfillment(const Fulfillment_t *ffill) {
 
     OCTET_STRING_t octets = eval->code;
     cond->codeLength = octets.size;
-    cond->code = malloc(octets.size);
+    cond->code = calloc(1,octets.size);
     memcpy(cond->code, octets.buf, octets.size);
 
     return cond;
@@ -104,7 +105,7 @@ static uint32_t evalSubtypes(const CC *cond) {
  */
 int jsonVerifyEval(CC *cond, void *context) {
     if (cond->codeLength == 5 && 0 == memcmp(cond->code, "TEST", 4)) {
-        return cond->code[5];
+        return cond->code[4];
     }
     fprintf(stderr, "Cannot verify eval; user function unknown\n");
     return 0;

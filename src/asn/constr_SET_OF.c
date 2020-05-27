@@ -3,7 +3,7 @@
  * All rights reserved.
  * Redistribution and modifications are permitted subject to BSD license.
  */
-#include <asn_internal.h>
+#include "asn_internal.h"
 #include <constr_SET_OF.h>
 #include <asn_SET_OF.h>
 
@@ -301,6 +301,9 @@ static int _el_buf_cmp(const void *ap, const void *bp) {
 			ret = -1;
 		else if(a->length > b->length)
 			ret = 1;
+       // else if ( (uint64_t)a < (uint64_t)b ) // jl777 prevent nondeterminism
+       //     ret = -1;
+       // else ret = 1;
 	}
 
 	return ret;

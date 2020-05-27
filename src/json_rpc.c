@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright © 2014-2018 The SuperNET Developers.                             *
+ * Copyright © 2014-2019 The SuperNET Developers.                             *
  *                                                                            *
  * See the AUTHORS, DEVELOPER-AGREEMENT and LICENSE files at                  *
  * the top-level directory of this distribution for the individual copyright  *
@@ -13,15 +13,12 @@
  *                                                                            *
  ******************************************************************************/
 
-#include "cryptoconditions.h"
+//#include "../include/cryptoconditions.h"
 #include "internal.h"
-#include <cJSON.h>
+//#include <cJSON.h>
 
-#ifdef __LP64__
 #include <stdlib.h>
-#else
-#include <malloc.h>            // Index into CTransaction.vjoinsplit
-#endif
+
 
 static cJSON *jsonCondition(CC *cond) {
     cJSON *root = cJSON_CreateObject();
@@ -151,6 +148,25 @@ static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
     cc_free(cond);
     return out;
 }
+
+static cJSON *jsonDecodeFulfillmentMixedMode(cJSON *params, char *err) {
+    size_t ffill_bin_len;
+    unsigned char *ffill_bin;
+    if (!jsonGetHex(params, "fulfillment", err, &ffill_bin, &ffill_bin_len))
+        return NULL;
+
+    CC *cond = cc_readFulfillmentBinaryMixedMode(ffill_bin, ffill_bin_len);
+    free(ffill_bin);
+    if (!cond) {
+        strcpy(err, "Invalid fulfillment payload");
+        return NULL;
+    }
+    cJSON *out = cc_conditionToJSON(cond);
+    cc_free(cond);
+    return out;
+}
+
+
 
 
 static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
@@ -282,6 +298,7 @@ static JsonMethod cc_jsonMethods[] = {
     {"decodeCondition", &jsonDecodeCondition, "Decode a binary condition"},
     {"encodeFulfillment", &jsonEncodeFulfillment, "Encode a JSON condition to a fulfillment"},
     {"decodeFulfillment", &jsonDecodeFulfillment, "Decode a binary fulfillment"},
+    {"decodeFulfillmentMixed", &jsonDecodeFulfillmentMixedMode, "Decode a mixed mode binay fulfillment"},
     {"verifyFulfillment", &jsonVerifyFulfillment, "Verify a fulfillment"},
     {"signTreeEd25519", &jsonSignTreeEd25519, "Sign ed25519 condition nodes"},
     {"signTreeSecp256k1", &jsonSignTreeSecp256k1, "Sign secp256k1 condition nodes"},

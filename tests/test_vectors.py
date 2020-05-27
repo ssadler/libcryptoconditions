@@ -3,7 +3,6 @@ import ctypes
 import base64
 import pytest
 import os.path
-import sys
 from ctypes import *
 
 
@@ -139,8 +138,7 @@ def _read_vectors(name):
     raise IOError("Vectors file not found: %s.json" % name)
 
 
-_ext = {'darwin': 'dylib', 'win32': 'dll'}.get(sys.platform, 'so')
-so = cdll.LoadLibrary('.libs/libcryptoconditions.' + _ext)
+so = cdll.LoadLibrary('.libs/libcryptoconditions.so')
 so.cc_jsonRPC.restype = c_char_p
 
 

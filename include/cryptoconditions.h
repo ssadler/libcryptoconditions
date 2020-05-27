@@ -1,3 +1,18 @@
+/******************************************************************************
+ * Copyright © 2014-2019 The SuperNET Developers.                             *
+ *                                                                            *
+ * See the AUTHORS, DEVELOPER-AGREEMENT and LICENSE files at                  *
+ * the top-level directory of this distribution for the individual copyright  *
+ * holder information and the developer policies on copyright and licensing.  *
+ *                                                                            *
+ * Unless otherwise agreed in a custom licensing agreement, no part of the    *
+ * SuperNET software, including this file may be copied, modified, propagated *
+ * or distributed except according to the terms contained in the LICENSE file *
+ *                                                                            *
+ * Removal or modification of this copyright notice is prohibited.            *
+ *                                                                            *
+ ******************************************************************************/
+
 #include <cJSON.h>
 #include <stdint.h>
 
@@ -56,8 +71,6 @@ typedef struct CC {
     };
 } CC;
 
-
-
 /*
  * Crypto Condition Visitor
  */
@@ -83,10 +96,13 @@ int             cc_signTreeSecp256k1Msg32(CC *cond, const uint8_t *privateKey, c
 int             cc_secp256k1VerifyTreeMsg32(const CC *cond, const uint8_t *msg32);
 size_t          cc_conditionBinary(const CC *cond, uint8_t *buf);
 size_t          cc_fulfillmentBinary(const CC *cond, uint8_t *buf, size_t bufLength);
+size_t          cc_fulfillmentBinaryMixedMode(const CC *cond, uint8_t *buf, size_t bufLength);
 struct CC*      cc_conditionFromJSON(cJSON *params, char *err);
 struct CC*      cc_conditionFromJSONString(const char *json, char *err);
 struct CC*      cc_readConditionBinary(const uint8_t *cond_bin, size_t cond_bin_len);
 struct CC*      cc_readFulfillmentBinary(const uint8_t *ffill_bin, size_t ffill_bin_len);
+struct CC*      cc_readFulfillmentBinaryMixedMode(const uint8_t *ffill_bin, size_t ffill_bin_len);
+int             cc_readFulfillmentBinaryExt(const unsigned char *ffill_bin, size_t ffill_bin_len, CC **ppcc);
 struct CC*      cc_new(int typeId);
 struct cJSON*   cc_conditionToJSON(const CC *cond);
 char*           cc_conditionToJSONString(const CC *cond);
@@ -97,6 +113,7 @@ enum CCTypeId   cc_typeId(const CC *cond);
 unsigned long   cc_getCost(const CC *cond);
 uint32_t        cc_typeMask(const CC *cond);
 int             cc_isAnon(const CC *cond);
+struct CC*      cc_anon(const CC *cond);
 void            cc_free(struct CC *cond);
 
 #ifdef __cplusplus

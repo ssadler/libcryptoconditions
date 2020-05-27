@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright © 2014-2018 The SuperNET Developers.                             *
+ * Copyright © 2014-2019 The SuperNET Developers.                             *
  *                                                                            *
  * See the AUTHORS, DEVELOPER-AGREEMENT and LICENSE files at                  *
  * the top-level directory of this distribution for the individual copyright  *
@@ -17,8 +17,8 @@
 #include "asn/Fulfillment.h"
 #include "asn/PrefixFingerprintContents.h"
 #include "asn/OCTET_STRING.h"
-#include "include/cJSON.h"
-#include "cryptoconditions.h"
+//#include <cJSON.h>
+//#include "../include/cryptoconditions.h"
 
 
 struct CCType CC_PrefixType;
@@ -26,7 +26,7 @@ struct CCType CC_PrefixType;
 
 static int prefixVisitChildren(CC *cond, CCVisitor visitor) {
     size_t prefixedLength = cond->prefixLength + visitor.msgLength;
-    unsigned char *prefixed = malloc(prefixedLength);
+    unsigned char *prefixed = calloc(1,prefixedLength);
     memcpy(prefixed, cond->prefix, cond->prefixLength);
     memcpy(prefixed + cond->prefixLength, visitor.msg, visitor.msgLength);
     visitor.msg = prefixed;
@@ -39,6 +39,7 @@ static int prefixVisitChildren(CC *cond, CCVisitor visitor) {
 
 static unsigned char *prefixFingerprint(const CC *cond) {
     PrefixFingerprintContents_t *fp = calloc(1, sizeof(PrefixFingerprintContents_t));
+    //fprintf(stderr,"prefixfinger %p %p\n",fp,cond->prefix);
     asnCondition(cond->subcondition, &fp->subcondition); // TODO: check asnCondition for safety
     fp->maxMessageLength = cond->maxMessageLength;
     OCTET_STRING_fromBuf(&fp->prefix, cond->prefix, cond->prefixLength);
@@ -52,9 +53,9 @@ static unsigned long prefixCost(const CC *cond) {
 }
 
 
-static CC *prefixFromFulfillment(const Fulfillment_t *ffill) {
+static CC *prefixFromFulfillment(const Fulfillment_t *ffill, FulfillmentFlags flags) {
     PrefixFulfillment_t *p = ffill->choice.prefixSha256;
-    CC *sub = fulfillmentToCC(p->subfulfillment);
+    CC *sub = fulfillmentToCC(p->subfulfillment, flags);
     if (!sub) return 0;
     CC *cond = cc_new(CC_Prefix);
     cond->maxMessageLength = p->maxMessageLength;
@@ -66,8 +67,8 @@ static CC *prefixFromFulfillment(const Fulfillment_t *ffill) {
 }
 
 
-static Fulfillment_t *prefixToFulfillment(const CC *cond) {
-    Fulfillment_t *ffill = asnFulfillmentNew(cond->subcondition);
+static Fulfillment_t *prefixToFulfillment(const CC *cond, FulfillmentFlags flags) {
+    Fulfillment_t *ffill = asnFulfillmentNew(cond->subcondition, flags);
     if (!ffill) {
         return NULL;
     }
