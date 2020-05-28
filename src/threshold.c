@@ -126,7 +126,6 @@ static int cmpConditionCost(const void *a, const void *b) {
 
 static CC *thresholdFromFulfillmentMixed(const Fulfillment_t *ffill) {
     ThresholdFulfillment_t *t = ffill->choice.thresholdSha256;
-    FulfillmentFlags flags = 0;
 
     Fulfillment_t** arrFulfills = t->subfulfillments.list.array;
     size_t nffills = t->subfulfillments.list.count;
@@ -134,48 +133,49 @@ static CC *thresholdFromFulfillmentMixed(const Fulfillment_t *ffill) {
 
     CC *cond = cc_new(CC_Threshold);
 
-    if (nffills == 0) {
-        free(cond);
-        return NULL;
-    }
+    int markerPos = -1;
 
-    { // Get the real threshold from the first ffill
-        CC *tc = fulfillmentToCC(arrFulfills[0], flags);
-        if (tc->type->typeId != CC_Preimage || tc->preimageLength != 1) {
-            cc_free(tc);
-            free(cond);
-            return NULL;
+    // Get the threshold marker. We should be able to determine that it's in
+    // last place but ASN has unintuitive ideas about encoding numbers
+    for (int i=0; i<nffills; i++) {
+        Fulfillment_t* marker = arrFulfills[i];
+        if (marker->present == Fulfillment_PR_mixedModeMarker) {
+            if (markerPos != -1) {
+                printf("AA\n");
+                goto error;
+            }
+            markerPos = i;
+            cond->threshold = marker->choice.mixedModeMarker.threshold;
         }
-        cond->threshold = tc->preimage[0];
-        cc_free(tc);
     }
-
+    if (markerPos == -1) {
+        printf("A\n");
+        goto error;
+    }
+    
     nffills--;
-
-    if (cond->threshold > nffills + nconds) {
-        free(cond);
-        return NULL;
-    }
-
-    arrFulfills++;
 
     cond->size = nffills + nconds;
     cond->subconditions = calloc(cond->size, sizeof(CC*));
     
 
     for (int i=0; i<cond->size; i++) {
+        if (i == markerPos) arrFulfills++;
 
         cond->subconditions[i] = (i < nffills) ?
-            fulfillmentToCC(arrFulfills[i], flags) :
+            fulfillmentToCC(arrFulfills[i], MixedMode) :
             mkAnon(t->subconditions.list.array[i-nffills]);
 
         if (!cond->subconditions[i]) {
-            free(cond);
-            return NULL;
+            printf("AAA\n");
+            goto error;
         }
     }
 
     return cond;
+error:
+    cc_free(cond);
+    return NULL;
 }
 
 
@@ -190,7 +190,7 @@ static CC *thresholdFromFulfillment(const Fulfillment_t *ffill, FulfillmentFlags
 
     for (int i=0; i<size; i++) {
         subconditions[i] = (i < threshold) ?
-            fulfillmentToCC(t->subfulfillments.list.array[i], 0) :
+            fulfillmentToCC(t->subfulfillments.list.array[i], flags) :
             mkAnon(t->subconditions.list.array[i-threshold]);
 
         if (!subconditions[i]) {
@@ -213,11 +213,10 @@ static Fulfillment_t *thresholdToFulfillmentMixed(const CC *cond, FulfillmentFla
     ThresholdFulfillment_t *tf = calloc(1, sizeof(ThresholdFulfillment_t));
 
     // Add a marker into the threshold to indicate `t`
-    CC* t = cc_new(CC_Preimage);
-    t->code = calloc(1, 2);
-    t->code[0] = cond->threshold;
-    t->preimageLength = 1;
-    asn_set_add(&tf->subfulfillments, asnFulfillmentNew(t, flags));
+    Fulfillment_t *marker = calloc(1, sizeof(Fulfillment_t));
+    marker->present = Fulfillment_PR_mixedModeMarker;
+    marker->choice.mixedModeMarker.threshold = cond->threshold;
+    asn_set_add(&tf->subfulfillments, marker);
 
     for (int i=0; i<cond->size; i++) {
         CC *sub = cond->subconditions[i];

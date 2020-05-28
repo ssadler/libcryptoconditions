@@ -45,6 +45,7 @@ libcryptoconditions_core_la_SOURCES = \
 	src/asn/ThresholdFulfillment.c	\
 	src/asn/RsaSha256Fulfillment.c	\
 	src/asn/Ed25519Sha512Fulfillment.c	\
+	src/asn/MixedModeMarker.c \
 	src/asn/PrefixFingerprintContents.c	\
 	src/asn/ThresholdFingerprintContents.c	\
 	src/asn/RsaFingerprintContents.c	\

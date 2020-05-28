@@ -4,34 +4,34 @@
  * 	found in "CryptoConditions.asn"
  */
 
-#ifndef	_PreimageFulfillment_H_
-#define	_PreimageFulfillment_H_
+#ifndef	_MixedModeMarker_H_
+#define	_MixedModeMarker_H_
 
 
 #include <asn_application.h>
 
 /* Including external dependencies */
-#include <OCTET_STRING.h>
+#include <NativeInteger.h>
 #include <constr_SEQUENCE.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* PreimageFulfillment */
-typedef struct PreimageFulfillment {
-	OCTET_STRING_t	 preimage;
+/* MixedModeMarker */
+typedef struct MixedModeMarker {
+	long	 threshold;
 	
 	/* Context for parsing across buffer boundaries */
 	asn_struct_ctx_t _asn_ctx;
-} PreimageFulfillment_t;
+} MixedModeMarker_t;
 
 /* Implementation */
-extern asn_TYPE_descriptor_t asn_DEF_PreimageFulfillment;
+extern asn_TYPE_descriptor_t asn_DEF_MixedModeMarker;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/* _PreimageFulfillment_H_ */
+#endif	/* _MixedModeMarker_H_ */
 #include <asn_internal.h>

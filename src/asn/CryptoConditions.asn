@@ -44,7 +44,12 @@ Crypto-Conditions DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       rsaSha256        [3] RsaSha256Fulfillment,
       ed25519Sha256    [4] Ed25519Sha512Fulfillment,
       secp256k1Sha256  [5] Secp256k1Fulfillment,
-      evalSha256       [15] EvalFulfillment
+      evalSha256       [15] EvalFulfillment,
+      mixedModeMarker  [255] MixedModeMarker
+    }
+
+    MixedModeMarker ::= SEQUENCE {
+      threshold            INTEGER (0..255)
     }
 
     PreimageFulfillment ::= SEQUENCE {

@@ -4,6 +4,7 @@ ASN_MODULE_SOURCES=	\
 	CompoundSha256Condition.c	\
 	ConditionTypes.c	\
 	Fulfillment.c	\
+	MixedModeMarker.c	\
 	PreimageFulfillment.c	\
 	PrefixFulfillment.c	\
 	ThresholdFulfillment.c	\
@@ -23,6 +24,7 @@ ASN_MODULE_HEADERS=	\
 	CompoundSha256Condition.h	\
 	ConditionTypes.h	\
 	Fulfillment.h	\
+	MixedModeMarker.h	\
 	PreimageFulfillment.h	\
 	PrefixFulfillment.h	\
 	ThresholdFulfillment.h	\

@@ -77,6 +77,9 @@ Condition_t *asnConditionNew(const CC *cond);
 Fulfillment_t *asnFulfillmentNew(const CC *cond, const FulfillmentFlags flags);
 struct CC *fulfillmentToCC(Fulfillment_t *ffill, const FulfillmentFlags flags);
 struct CCType *getTypeByAsnEnum(Condition_PR present);
+struct CCType* getTypeByName(char* name);
+size_t cc_fulfillmentBinaryWithFlags(const CC *cond, unsigned char *buf, size_t length, FulfillmentFlags flags);
+CC *cc_readFulfillmentBinaryWithFlags(const unsigned char *ffill_bin, size_t ffill_bin_len, FulfillmentFlags flags);
 
 
 /*

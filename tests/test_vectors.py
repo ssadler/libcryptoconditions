@@ -35,6 +35,8 @@ v1001 = '1001_test-minimal-secp256k1'
 all_vectors = {v0000, v0001, v0002, v0004, v0005, v0006, v0007, v0010,
                v0015, v0016, v0017, v1000, v1001}
 
+threshold_vectors = {v0002, v0010, v0016, v0017}
+
 
 @pytest.mark.parametrize('vectors_file', all_vectors)
 def test_encodeCondition(vectors_file):
@@ -69,10 +71,11 @@ def test_verifyFulfillment(vectors_file):
 @pytest.mark.parametrize('vectors_file', all_vectors)
 def test_decodeFulfillment(vectors_file):
     vectors = _read_vectors(vectors_file)
-    response = jsonRPC('decodeFulfillment', {
+    ffill = jsonRPC('decodeFulfillment', {
         'fulfillment': vectors['fulfillment'],
     })
-    assert response == {
+    cond = jsonRPC('encodeCondition', ffill)
+    assert cond == {
         'uri': vectors['conditionUri'],
         'bin': vectors['conditionBinary'],
     }
@@ -95,6 +98,17 @@ def test_json_condition_json_parse(vectors_file):
     out_ptr = so.cc_conditionToJSONString(cc)
     out = ctypes.cast(out_ptr, c_char_p).value.decode()
     assert json.loads(out) == vectors['json']
+
+
+@pytest.mark.parametrize('vectors_file', threshold_vectors)
+def test_vector_mixed_encode_decode(vectors_file):
+    vectors = _read_vectors(vectors_file)
+    ffill = jsonRPC('encodeFulfillmentMixedMode', vectors['json'])
+    decoded = jsonRPC('decodeFulfillmentMixedMode', ffill)
+    cond = jsonRPC('encodeCondition', decoded)
+    assert cond['bin'] == vectors['conditionBinary']
+    
+
 
 
 def b16_to_b64(b16):

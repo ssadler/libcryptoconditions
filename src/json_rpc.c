@@ -35,16 +35,6 @@ static cJSON *jsonCondition(CC *cond) {
 }
 
 
-static cJSON *jsonFulfillment(CC *cond) {
-    uint8_t buf[1000000];
-    size_t fulfillmentBinLength = cc_fulfillmentBinary(cond, buf, 1000000);
-
-    cJSON *root = cJSON_CreateObject();
-    jsonAddHex(root, "fulfillment", buf, fulfillmentBinLength);
-    return root;
-}
-
-
 CC *cc_conditionFromJSON(cJSON *params, char *err) {
     if (!params || !cJSON_IsObject(params)) {
         strcpy(err, "Condition params must be an object");
@@ -55,6 +45,11 @@ CC *cc_conditionFromJSON(cJSON *params, char *err) {
         strcpy(err, "\"type\" must be a string");
         return NULL;
     }
+
+    if (strcmp(typeName->valuestring, "(anon)") == 0) {
+        return CC_AnonType.fromJSON(params,err);
+    }
+
     for (int i=0; i<CCTypeRegistryLength; i++) {
         if (CCTypeRegistry[i] != NULL) {
             if (0 == strcmp(typeName->valuestring, CCTypeRegistry[i]->name)) {
@@ -86,16 +81,24 @@ static cJSON *jsonEncodeCondition(cJSON *params, char *err) {
 }
 
 
-static cJSON *jsonEncodeFulfillment(cJSON *params, char *err) {
+static cJSON *jsonEncodeFulfillmentWithFlags(cJSON *params, char *err, FulfillmentFlags flags) {
     CC *cond = cc_conditionFromJSON(params, err);
-    cJSON *out = NULL;
-    if (cond != NULL) {
-        out = jsonFulfillment(cond);
-        cc_free(cond);
-    }
-    return out;
+    if (cond == NULL) return NULL;
+    uint8_t buf[1000000];
+    size_t fulfillmentBinLength = cc_fulfillmentBinaryWithFlags(cond, buf, 1000000, flags);
+    cc_free(cond);
+    cJSON *root = cJSON_CreateObject();
+    jsonAddHex(root, "fulfillment", buf, fulfillmentBinLength);
+    return root;
 }
 
+static cJSON *jsonEncodeFulfillment(cJSON *params, char *err) {
+    return jsonEncodeFulfillmentWithFlags(params, err, 0);
+}
+
+static cJSON *jsonEncodeFulfillmentMixedMode(cJSON *params, char *err) {
+    return jsonEncodeFulfillmentWithFlags(params, err, MixedMode);
+}
 
 static cJSON *jsonErr(char *err) {
     cJSON *out = cJSON_CreateObject();
@@ -132,30 +135,15 @@ END:
 }
 
 
-static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
+
+static cJSON *jsonDecodeFulfillmentWithFlags(cJSON *params, char *err, FulfillmentFlags flags) {
+
     size_t ffill_bin_len;
     unsigned char *ffill_bin;
     if (!jsonGetHex(params, "fulfillment", err, &ffill_bin, &ffill_bin_len))
         return NULL;
 
-    CC *cond = cc_readFulfillmentBinary(ffill_bin, ffill_bin_len);
-    free(ffill_bin);
-    if (!cond) {
-        strcpy(err, "Invalid fulfillment payload");
-        return NULL;
-    }
-    cJSON *out = jsonCondition(cond);
-    cc_free(cond);
-    return out;
-}
-
-static cJSON *jsonDecodeFulfillmentMixedMode(cJSON *params, char *err) {
-    size_t ffill_bin_len;
-    unsigned char *ffill_bin;
-    if (!jsonGetHex(params, "fulfillment", err, &ffill_bin, &ffill_bin_len))
-        return NULL;
-
-    CC *cond = cc_readFulfillmentBinaryMixedMode(ffill_bin, ffill_bin_len);
+    CC *cond = cc_readFulfillmentBinaryWithFlags(ffill_bin, ffill_bin_len, flags);
     free(ffill_bin);
     if (!cond) {
         strcpy(err, "Invalid fulfillment payload");
@@ -166,7 +154,13 @@ static cJSON *jsonDecodeFulfillmentMixedMode(cJSON *params, char *err) {
     return out;
 }
 
+static cJSON *jsonDecodeFulfillment(cJSON *params, char *err) {
+    return jsonDecodeFulfillmentWithFlags(params, err, 0);
+}
 
+static cJSON *jsonDecodeFulfillmentMixedMode(cJSON *params, char *err) {
+    return jsonDecodeFulfillmentWithFlags(params, err, MixedMode);
+}
 
 
 static cJSON *jsonDecodeCondition(cJSON *params, char *err) {
@@ -267,6 +261,7 @@ END:
 
 
 cJSON *cc_conditionToJSON(const CC *cond) {
+    assert(cond != NULL);
     cJSON *params = cJSON_CreateObject();
     cJSON_AddItemToObject(params, "type", cJSON_CreateString(cond->type->name));
     cond->type->toJSON(cond, params);
@@ -297,8 +292,9 @@ static JsonMethod cc_jsonMethods[] = {
     {"encodeCondition", &jsonEncodeCondition, "Encode a JSON condition to binary"},
     {"decodeCondition", &jsonDecodeCondition, "Decode a binary condition"},
     {"encodeFulfillment", &jsonEncodeFulfillment, "Encode a JSON condition to a fulfillment"},
+    {"encodeFulfillmentMixedMode", &jsonEncodeFulfillmentMixedMode, "Encode a JSON condition to a fulfillment mixed mode"},
     {"decodeFulfillment", &jsonDecodeFulfillment, "Decode a binary fulfillment"},
-    {"decodeFulfillmentMixed", &jsonDecodeFulfillmentMixedMode, "Decode a mixed mode binay fulfillment"},
+    {"decodeFulfillmentMixedMode", &jsonDecodeFulfillmentMixedMode, "Decode a mixed mode binary fulfillment"},
     {"verifyFulfillment", &jsonVerifyFulfillment, "Verify a fulfillment"},
     {"signTreeEd25519", &jsonSignTreeEd25519, "Sign ed25519 condition nodes"},
     {"signTreeSecp256k1", &jsonSignTreeSecp256k1, "Sign secp256k1 condition nodes"},

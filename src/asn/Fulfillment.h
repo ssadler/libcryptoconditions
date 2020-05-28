@@ -8,7 +8,7 @@
 #define	_Fulfillment_H_
 
 
-#include "asn_application.h"
+#include <asn_application.h>
 
 /* Including external dependencies */
 #include "PreimageFulfillment.h"
@@ -16,7 +16,8 @@
 #include "Ed25519Sha512Fulfillment.h"
 #include "Secp256k1Fulfillment.h"
 #include "EvalFulfillment.h"
-#include "constr_CHOICE.h"
+#include "MixedModeMarker.h"
+#include <constr_CHOICE.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,7 +32,8 @@ typedef enum Fulfillment_PR {
 	Fulfillment_PR_rsaSha256,
 	Fulfillment_PR_ed25519Sha256,
 	Fulfillment_PR_secp256k1Sha256,
-	Fulfillment_PR_evalSha256
+	Fulfillment_PR_evalSha256,
+	Fulfillment_PR_mixedModeMarker
 } Fulfillment_PR;
 
 /* Forward declarations */
@@ -49,6 +51,7 @@ typedef struct Fulfillment {
 		Ed25519Sha512Fulfillment_t	 ed25519Sha256;
 		Secp256k1Fulfillment_t	 secp256k1Sha256;
 		EvalFulfillment_t	 evalSha256;
+		MixedModeMarker_t	 mixedModeMarker;
 	} choice;
 	
 	/* Context for parsing across buffer boundaries */
@@ -67,4 +70,4 @@ extern asn_TYPE_descriptor_t asn_DEF_Fulfillment;
 #include "ThresholdFulfillment.h"
 
 #endif	/* _Fulfillment_H_ */
-#include "asn_internal.h"
+#include <asn_internal.h>

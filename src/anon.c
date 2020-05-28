@@ -54,7 +54,40 @@ CC *mkAnon(const Condition_t *asnCond) {
     return cond;
 }
 
-
+static CC* anonFromJSON(const cJSON *params, char *err) {
+    CC* cond = cc_new(CC_Anon);
+    cJSON *item = cJSON_GetObjectItem(params, "realtype");
+    if (!checkString(item, "realtype", err)) {
+        return NULL;
+    }
+    cond->conditionType = getTypeByName(item->valuestring);
+    if (!cond->conditionType) {
+        strcpy(err, "Unknown type of anon");
+    }
+    size_t len;
+    uint8_t *fpbuf;
+    if (!jsonGetBase64(params, "fingerprint", err, &fpbuf, &len) || len != 32) {
+        strcpy(err, "invalid fingerprint in anon");
+        goto error;
+    }
+    memcpy(cond->fingerprint, fpbuf, 32);
+    cJSON *cost_item = cJSON_GetObjectItem(params, "cost");
+    if (!cJSON_IsNumber(cost_item)) {
+        strcpy(err, "cost must be a number");
+        goto error;
+    }
+    cond->cost = cost_item->valueint;
+    cJSON *subtypes_item = cJSON_GetObjectItem(params, "subtypes");
+    if (!cJSON_IsNumber(subtypes_item)) {
+        strcpy(err, "subtypes must be a number");
+        goto error;
+    }
+    cond->subtypes = subtypes_item->valueint;
+    return cond;
+error:
+    free(cond);
+    return NULL;
+}
 
 static void anonToJSON(const CC *cond, cJSON *params) {
     unsigned char *b64 = base64_encode(cond->fingerprint, 32);
@@ -62,6 +95,7 @@ static void anonToJSON(const CC *cond, cJSON *params) {
     free(b64);
     cJSON_AddItemToObject(params, "cost", cJSON_CreateNumber(cond->cost));
     cJSON_AddItemToObject(params, "subtypes", cJSON_CreateNumber(cond->subtypes));
+    cJSON_AddItemToObject(params, "realtype", cJSON_CreateString(cond->conditionType->name));
 }
 
 
@@ -97,4 +131,4 @@ static int anonIsFulfilled(const CC *cond) {
 }
 
 
-struct CCType CC_AnonType = { -1, "(anon)", Condition_PR_NOTHING, NULL, &anonFingerprint, &anonCost, &anonSubtypes, NULL, &anonToJSON, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };
+struct CCType CC_AnonType = { -1, "(anon)", Condition_PR_NOTHING, NULL, &anonFingerprint, &anonCost, &anonSubtypes, &anonFromJSON, &anonToJSON, NULL, &anonFulfillment, &anonIsFulfilled, &anonFree };

@@ -126,7 +126,7 @@ size_t cc_conditionBinary(const CC *cond, unsigned char *buf) {
 }
 
 
-size_t cc_fulfillmentBinaryWithFlags(const CC *cond, unsigned char *buf, size_t length, bool flags) {
+size_t cc_fulfillmentBinaryWithFlags(const CC *cond, unsigned char *buf, size_t length, FulfillmentFlags flags) {
     Fulfillment_t *ffill = asnFulfillmentNew(cond, flags);
     asn_enc_rval_t rc = der_encode_to_buffer(&asn_DEF_Fulfillment, ffill, buf, length);
     if (rc.encoded == -1) {
@@ -182,6 +182,18 @@ CCType *getTypeByAsnEnum(Condition_PR present) {
     for (int i=0; i<CCTypeRegistryLength; i++) {
         if (CCTypeRegistry[i] != NULL && CCTypeRegistry[i]->asnType == present) {
             return CCTypeRegistry[i];
+        }
+    }
+    return NULL;
+}
+
+
+CCType* getTypeByName(char* name) {
+    for (int i=0; i<CCTypeRegistryLength; i++) {
+        if (CCTypeRegistry[i] != NULL) {
+            if (0 == strcmp(name, CCTypeRegistry[i]->name)) {
+                return CCTypeRegistry[i];
+            }
         }
     }
     return NULL;
